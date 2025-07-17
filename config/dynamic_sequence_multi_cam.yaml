@@ -1,0 +1,70 @@
+_target_: workspace.dynamic_sequence_multi_cam_ws.RewindRewardWorkspace
+
+cfg:
+  general:
+    # dataset specific
+    project_name: "rewind_reward_dynamic_seq_model_frame_gap"
+    task_name: "pick_up_cube"
+    # repo_id: Qianzhong-Chen/yam_pick_up_cube_sim_policy_pi0_joint_image_flip_new_0630
+    # repo_id: Qianzhong-Chen/yam_pick_up_cube_sim_policy_pi0_joint_image_flip_extend_0630_test_2
+    repo_id: Qianzhong-Chen/yam_pick_up_cube_sim_rotate_0704
+    camera_names: [right_camera-images-rgb, top_camera-images-rgb]
+    seed: 42
+    device: "cuda"        # "cpu" for debugging
+
+  dataloader:
+    batch_size: 48
+    num_workers: 16 # nproc=32
+    shuffle: True
+    pin_memory: True
+    persistent_workers: True
+
+  val_dataloader:
+    batch_size: 48
+    num_workers: 16
+    shuffle: False
+    pin_memory: True
+    persistent_workers: True
+
+  rollout_dataloader:
+    batch_size: 1 # don't change
+    num_workers: 20
+    shuffle: True
+    pin_memory: True
+    persistent_workers: True
+
+  encoders:              
+    # # DINO
+    # vision_ckpt: "facebook/dinov2-base"
+    # text_ckpt:   "sentence-transformers/all-MiniLM-L6-v2"
+    # # text_ckpt:   "sentence-transformers/paraphrase-MiniLM-L3-v2"
+
+    # CLIP
+    vision_ckpt: "openai/clip-vit-base-patch32"
+    text_ckpt: "openai/clip-vit-base-patch32"
+
+  model:
+    d_model: 512          # CLS width of dinov2-base
+    max_seq_len: 128
+    n_layers: 4
+    n_heads: 8
+    dropout: 0.1
+    n_seq: 12
+    max_rewind_steps: 6
+
+  optim:
+    lr: 1e-4
+    weight_decay: 1.0e-3
+    betas: [0.9, 0.95]
+    eps: 1.0e-8
+    warmup_steps: 1000
+
+  train:
+    num_epochs: 20
+    grad_clip: 1.0
+    log_every: 20        # steps
+    eval_every: 1        # epochs
+    save_every: 5
+    val_portion: 0.1     # fraction of episodes for validation
+    rollout_every: 1
+    rollout_steps: 10    # steps per rollout
