@@ -31,11 +31,19 @@ def draw_plot_frame(step: int, pred, gt, x_offset, width=448, height=448):
     else:
         ax.text(step + x_offset, text_y, "Finished", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
 
+    # canvas = FigureCanvas(fig)
+    # canvas.draw()
+    # img = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
+    # img = img.reshape(canvas.get_width_height()[::-1] + (3,))
+    # plt.close(fig)
+
     canvas = FigureCanvas(fig)
     canvas.draw()
-    img = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
-    img = img.reshape(canvas.get_width_height()[::-1] + (3,))
+    img = np.frombuffer(canvas.buffer_rgba(), dtype='uint8').copy()
+    img = img.reshape(canvas.get_width_height()[::-1] + (4,))
+    img = img[:, :, :3]  # get RGB
     plt.close(fig)
+
 
     return img
 
@@ -50,7 +58,7 @@ def produce_video(save_dir, left_video_dir, middle_video_dir, episode_num, x_off
     pred_path = episode_dir / "pred.npy"
     gt_path = episode_dir / "gt.npy"
     output_path = episode_dir / "combined_video.mp4"
-    frame_rate = 11
+    frame_rate = 30
 
     target_h, target_w = 448, 448  # resolution per panel
 

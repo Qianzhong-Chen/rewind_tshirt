@@ -52,7 +52,7 @@ cfg:
     horizon: 6
     n_obs_steps: 6
     max_rewind_steps: 4
-    frame_gap: 5
+    frame_gap: 50
     state_dim: 14
     num_classes: 6 # num_classes = num_stage + 1
     dense_annotation: True # check the rule inside the dataset class to allign with progress
@@ -83,6 +83,6 @@ cfg:
 
   eval:
     run_times: 20        # number of rollouts
-    video_run_times: 30 # number of episodes to evaluate in video
-    ckpt_path: "/home/david_chen/rewind_reproduce/outputs/2025-07-15/21-00-21/rewind_reward_fixed_seq_model_frame_gap_multi_stage/pick_up_cube/checkpoints"
+    video_run_times: 5 # number of episodes to evaluate in video
+    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-07-18/10-00-17/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints"
 

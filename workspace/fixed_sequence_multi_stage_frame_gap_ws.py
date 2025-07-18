@@ -442,7 +442,8 @@ class RewindRewardWorkspace:
                                                frame_gap=cfg.model.frame_gap,
                                                max_rewind_steps=cfg.model.max_rewind_steps,
                                                image_names=cfg.general.camera_names,
-                                               dense_annotation=cfg.model.dense_annotation)
+                                               dense_annotation=cfg.model.dense_annotation,
+                                               annotation_list=cfg.model.annotation_list)
         
         dataloader_rollout = torch.utils.data.DataLoader(dataset_val, **cfg.rollout_dataloader)
         state_normalizer = get_normalizer_from_calculated(cfg.general.state_norm_path, self.device)
@@ -461,8 +462,10 @@ class RewindRewardWorkspace:
         vis_dim = 512
         txt_dim = 512
 
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_001000_loss_0.026.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_001000_loss_0.056.pt"
 
         # Create model instances
         reward_model = RewardTransformer(d_model=cfg.model.d_model, 
@@ -600,7 +603,7 @@ class RewindRewardWorkspace:
         import random
         cfg = self.cfg
         valid_episodes = get_valid_episodes(cfg.general.repo_id)
-        dataset_val   = FrameGapLeRobotDataset(repo_id=cfg.general.repo_id, 
+        dataset_val = FrameGapLeRobotDataset(repo_id=cfg.general.repo_id, 
                                                horizon=cfg.model.horizon, 
                                                episodes=valid_episodes, 
                                                n_obs_steps=cfg.model.n_obs_steps, 
@@ -608,6 +611,7 @@ class RewindRewardWorkspace:
                                                max_rewind_steps=cfg.model.max_rewind_steps,
                                                image_names=cfg.general.camera_names,
                                                dense_annotation=cfg.model.dense_annotation,
+                                               annotation_list=cfg.model.annotation_list,
                                                video_eval=True)
         
         dataloader_rollout = torch.utils.data.DataLoader(dataset_val, **cfg.rollout_dataloader)
@@ -627,8 +631,10 @@ class RewindRewardWorkspace:
         vis_dim = 512
         txt_dim = 512
 
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_001000_loss_0.026.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_001000_loss_0.056.pt"
 
         # Create model instances
         reward_model = RewardTransformer(d_model=cfg.model.d_model, 

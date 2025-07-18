@@ -58,9 +58,6 @@ def comply_lerobot_batch_multi_stage_video_eval(batch: dict, camera_names: List[
         for cam_name in camera_names:
             result["image_frames"][cam_name] = batch[cam_name].unsqueeze(0)
 
-        if dense_annotation:
-            result["tasks"] = [result["tasks"]]
-
         return result
 
 
