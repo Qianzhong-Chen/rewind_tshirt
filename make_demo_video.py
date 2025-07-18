@@ -24,13 +24,21 @@ def draw_plot_frame(step: int, pred, gt, x_offset, width=448, height=448):
     current_gt = gt[step]
     text_y = ax.get_ylim()[1] * 0.9  # position near top
 
-    if 1.0 <= current_gt < 2.0:
-        ax.text(step + x_offset, text_y, "Grasp & Pick Up", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
-    elif current_gt <= 1.0:
-        ax.text(step + x_offset, text_y, "Reach Cube", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
-    else:
-        ax.text(step + x_offset, text_y, "Finished", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
 
+    if current_gt <= 1.0:
+        ax.text(step + x_offset, text_y, "Grab the tshirt from the pile", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    elif 1.0 <= current_gt < 2.0:
+        ax.text(step + x_offset, text_y, "Move the tshirt to the center of the board", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    elif 2.0 <= current_gt < 3.0:
+        ax.text(step + x_offset, text_y, "Flatten the tshirt out", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    elif 3.0 <= current_gt < 4.0:
+        ax.text(step + x_offset, text_y, "Fold the tshirt", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    elif 4.0 <= current_gt < 5.0:
+        ax.text(step + x_offset, text_y, "Neatly place the folded tshirt to the corner", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    else:
+        ax.text(step + x_offset, text_y, "Task Finished", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+
+    
     # canvas = FigureCanvas(fig)
     # canvas.draw()
     # img = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
@@ -58,7 +66,7 @@ def produce_video(save_dir, left_video_dir, middle_video_dir, episode_num, x_off
     pred_path = episode_dir / "pred.npy"
     gt_path = episode_dir / "gt.npy"
     output_path = episode_dir / "combined_video.mp4"
-    frame_rate = 30
+    frame_rate = 35
 
     target_h, target_w = 448, 448  # resolution per panel
 

@@ -138,7 +138,7 @@ class FrameGapLeRobotDataset(LeRobotDataset):
             phrase = [verb] + self.fake.words(nb=num_words)
             seq_item["task"] = " ".join(phrase)
         else:
-            seq_item["task"] = "pick up the cube"
+            seq_item["task"] = "fold the tshirt"
 
         # Progress targets
         # progress_start = (obs_indices[1] - ep_start) / (ep_end - ep_start) if ep_end > ep_start else 0.0
@@ -175,20 +175,7 @@ class FrameGapLeRobotDataset(LeRobotDataset):
                     stage_idx =  int(torch.floor(seq_item["targets"][i]).item())
                     stage_idx = min(stage_idx, len(self.annotation_list) - 1)
                     seq_item["task"][i] = self.annotation_list[stage_idx]
-
-
-                    # if 0.0 < seq_item["targets"][i] < 1.0:
-                    #     seq_item["task"][i] = "Grab the tshirt from the pile"
-                    # elif 1.0 <= seq_item["targets"][i] < 2.0:
-                    #     seq_item["task"][i] = "Move the tshirt to the center of the board"
-                    # elif 2.0 <= seq_item["targets"][i] < 3.0:
-                    #     seq_item["task"][i] = "Flatten the tshirt out"
-                    # elif 3.0 <= seq_item["targets"][i] < 4.0:
-                    #     seq_item["task"][i] = "Fold the tshirt"
-                    # elif 4.0 <= seq_item["targets"][i] < 5.0:
-                    #     seq_item["task"][i] = "Neatly place the folded tshirt to the corner"
-                    # else:
-                    #     seq_item["task"][i] = "task finished"
+        
 
                 
 
