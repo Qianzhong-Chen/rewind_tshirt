@@ -28,6 +28,7 @@ class FrameGapLeRobotDataset(LeRobotDataset):
         image_names: list[str] = ["top_camera-images-rgb"],
         dense_annotation: bool = False,
         video_eval: bool = False,
+        annotation_list: list[str] | None = None,
     ):
         super().__init__(
             repo_id=repo_id,
@@ -53,6 +54,7 @@ class FrameGapLeRobotDataset(LeRobotDataset):
         self.fake = Faker()
         self.dense_annotation = dense_annotation
         self.video_eval = video_eval
+        self.annotation_list = annotation_list
 
     # add fixed ep start to sequence
     def __getitem__(self, idx: int) -> dict:
@@ -170,18 +172,23 @@ class FrameGapLeRobotDataset(LeRobotDataset):
                 seq_item["task"] = [''] * (1 + self.n_obs_steps + self.max_rewind_steps)
                 # Five-staged task annotation
                 for i in range(0, 1 + self.n_obs_steps + self.max_rewind_steps):
-                    if 0.0 < seq_item["targets"][i] < 1.0:
-                        seq_item["task"][i] = "Grab the tshirt from the pile"
-                    elif 1.0 <= seq_item["targets"][i] < 2.0:
-                        seq_item["task"][i] = "Move the tshirt to the center of the board"
-                    elif 2.0 <= seq_item["targets"][i] < 3.0:
-                        seq_item["task"][i] = "Flatten the tshirt out"
-                    elif 3.0 <= seq_item["targets"][i] < 4.0:
-                        seq_item["task"][i] = "Fold the tshirt"
-                    elif 4.0 <= seq_item["targets"][i] < 5.0:
-                        seq_item["task"][i] = "Neatly place the folded tshirt to the corner"
-                    else:
-                            seq_item["task"][i] = "task finished"
+                    stage_idx =  int(torch.floor(seq_item["targets"][i]).item())
+                    stage_idx = min(stage_idx, len(self.annotation_list) - 1)
+                    seq_item["task"][i] = self.annotation_list[stage_idx]
+
+
+                    # if 0.0 < seq_item["targets"][i] < 1.0:
+                    #     seq_item["task"][i] = "Grab the tshirt from the pile"
+                    # elif 1.0 <= seq_item["targets"][i] < 2.0:
+                    #     seq_item["task"][i] = "Move the tshirt to the center of the board"
+                    # elif 2.0 <= seq_item["targets"][i] < 3.0:
+                    #     seq_item["task"][i] = "Flatten the tshirt out"
+                    # elif 3.0 <= seq_item["targets"][i] < 4.0:
+                    #     seq_item["task"][i] = "Fold the tshirt"
+                    # elif 4.0 <= seq_item["targets"][i] < 5.0:
+                    #     seq_item["task"][i] = "Neatly place the folded tshirt to the corner"
+                    # else:
+                    #     seq_item["task"][i] = "task finished"
 
                 
 

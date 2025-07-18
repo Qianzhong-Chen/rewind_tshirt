@@ -59,7 +59,8 @@ class RewindRewardWorkspace:
                                                frame_gap=cfg.model.frame_gap,
                                                max_rewind_steps=cfg.model.max_rewind_steps,
                                                image_names=cfg.general.camera_names,
-                                               dense_annotation=cfg.model.dense_annotation)
+                                               dense_annotation=cfg.model.dense_annotation,
+                                               annotation_list=cfg.model.annotation_list)
 
         dataset_val   = FrameGapLeRobotDataset(repo_id=cfg.general.repo_id, 
                                                horizon=cfg.model.horizon, 
@@ -68,7 +69,8 @@ class RewindRewardWorkspace:
                                                frame_gap=cfg.model.frame_gap,
                                                max_rewind_steps=cfg.model.max_rewind_steps,
                                                image_names=cfg.general.camera_names,
-                                               dense_annotation=cfg.model.dense_annotation)
+                                               dense_annotation=cfg.model.dense_annotation,
+                                               annotation_list=cfg.model.annotation_list)
 
         dataloader_train = torch.utils.data.DataLoader(dataset_train, **cfg.dataloader)
         dataloader_val   = torch.utils.data.DataLoader(dataset_val, **cfg.val_dataloader)
@@ -247,6 +249,11 @@ class RewindRewardWorkspace:
                         }, step=step)
                     
                     pbar.set_postfix(loss=f"{(stage_loss.item() + reward_loss.item()):.4f}")
+
+                    if step % cfg.train.save_every == 0:
+                        save_ckpt(reward_model, reward_optimizer, epoch, self.save_dir, input_name=f"reward_step_{step:06d}_loss_{reward_loss.item():.3f}")
+                        save_ckpt(stage_model, stage_optimizer, epoch, self.save_dir, input_name=f"stage_step_{step:06d}_loss_{stage_loss.item():.3f}")
+
                     step += 1
 
             # --- validation ---
@@ -416,10 +423,7 @@ class RewindRewardWorkspace:
             if epoch == cfg.train.num_epochs:
                 save_ckpt(reward_model, reward_optimizer, epoch, self.save_dir, input_name="reward_final")
                 save_ckpt(stage_model, stage_optimizer, epoch, self.save_dir, input_name="stage_final")
-            elif epoch % cfg.train.save_every == 0:
-                save_ckpt(reward_model, reward_optimizer, epoch, self.save_dir, input_name=f"reward_epoch_{epoch:04d}")
-                save_ckpt(stage_model, stage_optimizer, epoch, self.save_dir, input_name=f"stage_epoch_{epoch:04d}")
-
+            
             if val_loss < best_val:
                 best_val = val_loss
                 save_ckpt(reward_model, reward_optimizer, epoch, self.save_dir, input_name="reward_best")

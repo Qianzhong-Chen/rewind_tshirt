@@ -56,6 +56,12 @@ cfg:
     state_dim: 14
     num_classes: 6 # num_classes = num_stage + 1
     dense_annotation: True # check the rule inside the dataset class to allign with progress
+    annotation_list: ["Grab the tshirt from the pile", 
+                      "Move the tshirt to the center of the board",
+                      "Flatten the tshirt out",
+                      "Fold the tshirt",
+                      "Neatly place the folded tshirt to the corner",
+                      "task finished"]
 
   optim:
     lr: 5e-5
@@ -63,16 +69,16 @@ cfg:
     betas: [0.9, 0.95]
     eps: 1.0e-8
     warmup_steps: 1000
-    total_steps: 100000
+    total_steps: 10_000
 
   train:
     num_epochs: 10
     grad_clip: 1.0
     log_every: 20        # steps
     eval_every: 1        # epochs
-    save_every: 1
+    save_every: 500     # steps
     val_portion: 0.1     # fraction of episodes for validation
-    rollout_every: 1
+    rollout_every: 1     # epoch
     rollout_steps: 10    # steps per rollout
 
   eval:
