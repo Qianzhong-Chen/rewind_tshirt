@@ -4,25 +4,23 @@ cfg:
   general:
     # dataset specific
     project_name: "rewind_reward_fixed_seq_model_frame_gap_multi_stage"
-    task_name: "pick_up_cube"
+    task_name: "fold_tshirt"
    
-    # repo_id: Qianzhong-Chen/yam_pick_up_cube_sim_rotate_reward_test
-    repo_id: Qianzhong-Chen/yam_pick_up_cube_sim_rotate_reward_two_stage_0715 # two-staged dataset
-    # repo_id: Qianzhong-Chen/yam_pick_up_cube_sim_rotate_reward_0714 # three-staged dataset
-    state_norm_path: "/home/david_chen/rewind_reproduce/assets/pick_up_cube.json"
-    camera_names: [right_camera-images-rgb, top_camera-images-rgb]
+    repo_id: Qianzhong-Chen/tshirt_reward_anno_0717 # two-staged dataset
+    state_norm_path: "/home/david_chen/rewind_tshirt/assets/fold_tshirt.json"
+    camera_names: [right_camera-images-rgb, right_camera-images-rgb, top_camera-images-rgb]
     seed: 42
     device: "cuda"        # "cpu" for debugging
 
   dataloader:
-    batch_size: 32
+    batch_size: 48
     num_workers: 16 # nproc=32
     shuffle: True
     pin_memory: True
     persistent_workers: True
 
   val_dataloader:
-    batch_size: 32
+    batch_size: 48
     num_workers: 16
     shuffle: False
     pin_memory: True
@@ -55,9 +53,9 @@ cfg:
     n_obs_steps: 6
     max_rewind_steps: 4
     frame_gap: 5
-    state_dim: 7
-    num_classes: 3
-    dense_annotation: False # check the rule inside the dataset class to allign with progress
+    state_dim: 14
+    num_classes: 6 # num_classes = num_stage + 1
+    dense_annotation: True # check the rule inside the dataset class to allign with progress
 
   optim:
     lr: 5e-5
@@ -72,7 +70,7 @@ cfg:
     grad_clip: 1.0
     log_every: 20        # steps
     eval_every: 1        # epochs
-    save_every: 5
+    save_every: 1
     val_portion: 0.1     # fraction of episodes for validation
     rollout_every: 1
     rollout_steps: 10    # steps per rollout

@@ -1,5 +1,5 @@
 [project]
-name = "rewind"
+name = "rewind_tshirt"
 version = "0.1.0"
 description = "Reward learning with LeRobot and PyTorch 2.7 + CUDA 12.8"
 readme = "README.md"
@@ -17,6 +17,9 @@ dependencies = [
   "omegaconf==2.3.0",
   "datasets==3.6.0",
   "opencv-python==4.7.0.72",
+  "moviepy==1.0.3",
+  zarr==2.18.3",
+
 
 
   "tqdm",

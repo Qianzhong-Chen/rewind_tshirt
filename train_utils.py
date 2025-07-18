@@ -27,8 +27,8 @@ def get_normalizer_from_calculated(path, device) -> SingleFieldLinearNormalizer:
     with open(path, 'r') as f:
         norm_data = json.load(f)['norm_stats']
 
-    def to_tensor_slice(data, k=7): # only right arm
-        return torch.tensor(data[k:2*k], dtype=torch.float32).to(device)
+    def to_tensor_slice(data, k=14): # both arms
+        return torch.tensor(data[:k], dtype=torch.float32).to(device)
 
     # Process state
     state_stats = norm_data['state']

@@ -168,26 +168,22 @@ class FrameGapLeRobotDataset(LeRobotDataset):
                 seq_item["task"] = [seq_item["task"]] * (1 + self.n_obs_steps + self.max_rewind_steps)
             else:
                 seq_item["task"] = [''] * (1 + self.n_obs_steps + self.max_rewind_steps)
-                seq_item["task"][0] = "reach the cube"
-                # Three-staged task annotation
-                # for i in range(1, 1 + self.n_obs_steps + self.max_rewind_steps):
-                #     if 0.0 < seq_item["targets"][i] < 1.0:
-                #         seq_item["task"][i] = "reach the cube"
-                #     elif 1.0 <= seq_item["targets"][i] < 2.0:
-                #         seq_item["task"][i] = "grasp the cube"
-                #     elif 2.0 <= seq_item["targets"][i] < 3.0:
-                #         seq_item["task"][i] = "lift the cube"
-                #     elif 3.0 <= seq_item["targets"][i]:
-                #         seq_item["task"][i] = "task finished"
-
-                # Two-staged task annotation
-                for i in range(1, 1 + self.n_obs_steps + self.max_rewind_steps):
+                # Five-staged task annotation
+                for i in range(0, 1 + self.n_obs_steps + self.max_rewind_steps):
                     if 0.0 < seq_item["targets"][i] < 1.0:
-                        seq_item["task"][i] = "reach the cube"
+                        seq_item["task"][i] = "Grab the tshirt from the pile"
                     elif 1.0 <= seq_item["targets"][i] < 2.0:
-                        seq_item["task"][i] = "pick up the cube"
-                    elif 2.0 <= seq_item["targets"][i]:
-                        seq_item["task"][i] = "task finished"
+                        seq_item["task"][i] = "Move the tshirt to the center of the board"
+                    elif 2.0 <= seq_item["targets"][i] < 3.0:
+                        seq_item["task"][i] = "Flatten the tshirt out"
+                    elif 3.0 <= seq_item["targets"][i] < 4.0:
+                        seq_item["task"][i] = "Fold the tshirt"
+                    elif 4.0 <= seq_item["targets"][i] < 5.0:
+                        seq_item["task"][i] = "Neatly place the folded tshirt to the corner"
+                    else:
+                            seq_item["task"][i] = "task finished"
+
+                
 
         del item, video_frames, query_ts_dict, obs_ts_range, progress_list, state_with_rewind, frame_relative_indices
 

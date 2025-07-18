@@ -29,7 +29,7 @@ def comply_lerobot_batch_multi_stage(batch: dict, camera_names: List[str] = ["to
             "targets": batch["targets"],
             "lengths": batch["lengths"],
             "tasks": batch["task"],
-            "state": batch["state"][:, :, 7:],
+            "state": batch["state"],
             "frame_relative_indices": batch["frame_relative_indices"],
         }
 
@@ -51,7 +51,7 @@ def comply_lerobot_batch_multi_stage_video_eval(batch: dict, camera_names: List[
             "targets": batch["targets"].unsqueeze(0),  
             "lengths": batch["lengths"].unsqueeze(0),
             "tasks": [batch["task"]],
-            "state": batch["state"][ :, 7:].unsqueeze(0),
+            "state": batch["state"].unsqueeze(0),
             "frame_relative_indices": batch["frame_relative_indices"].unsqueeze(0),
         }
 
