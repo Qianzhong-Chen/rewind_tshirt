@@ -57,11 +57,12 @@ def draw_plot_frame(step: int, pred, gt, x_offset, width=448, height=448):
 
 
 
-def produce_video(save_dir, left_video_dir, middle_video_dir, episode_num, x_offset=30):
+def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, episode_num, x_offset=30):
     # === CONFIGURATION ===
     episode_dir = save_dir / f"episode_{episode_num}"
     left_video_path = left_video_dir / f"episode_{episode_num:06d}.mp4"
     middle_video_path = middle_video_dir / f"episode_{episode_num:06d}.mp4"
+    right_video_path = right_video_dir / f"episode_{episode_num:06d}.mp4"
     pred_path = episode_dir / "pred.npy"
     pred_path = episode_dir / "pred.npy"
     gt_path = episode_dir / "gt.npy"
@@ -80,19 +81,22 @@ def produce_video(save_dir, left_video_dir, middle_video_dir, episode_num, x_off
     # Load videos
     clip_left = VideoFileClip(str(left_video_path))
     clip_middle = VideoFileClip(str(middle_video_path))
+    clip_right = VideoFileClip(str(right_video_path))
     frames_left = [f for f in clip_left.iter_frames(fps=frame_rate)][x_offset:x_offset + T]
     frames_middle = [f for f in clip_middle.iter_frames(fps=frame_rate)][x_offset:x_offset + T]
+    frames_right = [f for f in clip_right.iter_frames(fps=frame_rate)][x_offset:x_offset + T]
 
-    assert len(frames_left) >= T and len(frames_middle) >= T, "Video(s) too short"
+    assert len(frames_left) >= T and len(frames_middle) >= T and len(frames_right) >= T, "Video(s) too short"
 
     # === CREATE COMBINED FRAMES ===
     combined_frames = []
     for t in range(T):
         left_resized = cv2.resize(frames_left[t], (target_w, target_h))
         middle_resized = cv2.resize(frames_middle[t], (target_w, target_h))
+        right_resized = cv2.resize(frames_right[t], (target_w, target_h))
         plot_img = draw_plot_frame(t, pred, gt, x_offset, height=target_h, width=target_w)
 
-        combined = np.concatenate((left_resized, middle_resized, plot_img), axis=1)
+        combined = np.concatenate((left_resized, middle_resized, right_resized, plot_img), axis=1)
         combined_frames.append(combined)
 
     # === SAVE VIDEO ===
@@ -103,9 +107,10 @@ def main():
     episode_num = 257
     x_offset = 30
     episode_dir = Path(f"/home/david_chen/rewind_reproduce/outputs/2025-07-16/12-18-19/rewind_reward_fixed_seq_model_frame_gap_multi_stage/pick_up_cube/eval_video/2025.07.16-12.18.26")
-    left_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/Qianzhong-Chen/yam_pick_up_cube_sim_rotate_reward_two_stage_0715/videos/chunk-000/top_camera-images-rgb")
-    middle_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/Qianzhong-Chen/yam_pick_up_cube_sim_rotate_reward_two_stage_0715/videos/chunk-000/right_camera-images-rgb")
-    produce_video(episode_dir, left_video_dir, middle_video_dir, episode_num, x_offset)
+    left_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/Qianzhong-Chen/yam_pick_up_cube_sim_rotate_reward_two_stage_0715/videos/chunk-000/left_camera-images-rgb")
+    middle_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/Qianzhong-Chen/yam_pick_up_cube_sim_rotate_reward_two_stage_0715/videos/chunk-000/top_camera-images-rgb")
+    right_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/Qianzhong-Chen/yam_pick_up_cube_sim_rotate_reward_two_stage_0715/videos/chunk-000/right_camera-images-rgb")
+    produce_video(episode_dir, left_video_dir, middle_video_dir, right_video_dir, episode_num, x_offset)
 
 if __name__ == "__main__":
     main()
