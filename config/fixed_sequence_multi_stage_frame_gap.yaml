@@ -6,7 +6,7 @@ cfg:
     project_name: "rewind_reward_fixed_seq_model_frame_gap_multi_stage"
     task_name: "fold_tshirt"
    
-    repo_id: Qianzhong-Chen/tshirt_reward_anno_0717 # two-staged dataset
+    repo_id: Qianzhong-Chen/tshirt_reward_anno_0717 # two-staged dataset, 1epoch 15k steps
     state_norm_path: "/home/david_chen/rewind_tshirt/assets/fold_tshirt.json"
     camera_names: [right_camera-images-rgb, right_camera-images-rgb, top_camera-images-rgb]
     seed: 42
@@ -69,20 +69,21 @@ cfg:
     betas: [0.9, 0.95]
     eps: 1.0e-8
     warmup_steps: 500
-    total_steps: 10_000
+    total_steps: 30_000
 
   train:
     num_epochs: 2
     grad_clip: 1.0
     log_every: 50        # steps
     eval_every: 1        # epochs
-    save_every: 1000     # steps
+    save_every: 2000     # steps
     val_portion: 0.1     # fraction of episodes for validation
     rollout_every: 1     # epoch
     rollout_steps: 10    # steps per rollout
 
   eval:
     run_times: 50        # number of rollouts
-    video_run_times: 5 # number of episodes to evaluate in video
-    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-07-19/00-52-24/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints" # non_dense anno, frame_gap=50
+    video_run_times: 30 # number of episodes to evaluate in video
+    # ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-07-19/00-52-24/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints" # non_dense anno, frame_gap=50
+    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-07-21/13-00-24/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints" # non_dense anno, frame_gap=15
 

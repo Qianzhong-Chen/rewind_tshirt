@@ -67,7 +67,7 @@ def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, e
     pred_path = episode_dir / "pred.npy"
     gt_path = episode_dir / "gt.npy"
     output_path = episode_dir / "combined_video.mp4"
-    frame_rate = 35
+    frame_rate = 32
 
     target_h, target_w = 448, 448  # resolution per panel
 
@@ -82,11 +82,16 @@ def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, e
     clip_left = VideoFileClip(str(left_video_path))
     clip_middle = VideoFileClip(str(middle_video_path))
     clip_right = VideoFileClip(str(right_video_path))
-    frames_left = [f for f in clip_left.iter_frames(fps=frame_rate)][x_offset:x_offset + T]
-    frames_middle = [f for f in clip_middle.iter_frames(fps=frame_rate)][x_offset:x_offset + T]
-    frames_right = [f for f in clip_right.iter_frames(fps=frame_rate)][x_offset:x_offset + T]
-
+    frames_left = [f for f in clip_left.iter_frames(fps=frame_rate)][x_offset:]
+    frames_middle = [f for f in clip_middle.iter_frames(fps=frame_rate)][x_offset:]
+    frames_right = [f for f in clip_right.iter_frames(fps=frame_rate)][x_offset:]
     assert len(frames_left) >= T and len(frames_middle) >= T and len(frames_right) >= T, "Video(s) too short"
+    total_len = len(frames_left)
+    indices = np.linspace(0, total_len - 1, T, dtype=int)
+    frames_left = [frames_left[i] for i in indices]
+    frames_right = [frames_right[i] for i in indices]
+    frames_middle = [frames_middle[i] for i in indices]
+
 
     # === CREATE COMBINED FRAMES ===
     combined_frames = []
