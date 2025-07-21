@@ -74,10 +74,6 @@ class FrameGapLeRobotDataset(LeRobotDataset):
         # Compute frame indices for observation
         obs_indices = [ep_start] + [idx - i * self.frame_gap for i in reversed(range(self.n_obs_steps))]
 
-        # try:
-        #     sequence = self.hf_dataset.select(obs_indices)
-        # except IndexError:
-        #     sequence = self.hf_dataset.select([min(idx, len(self.hf_dataset) - 1)])
 
         sequence = self.hf_dataset.select(obs_indices)
 
@@ -141,9 +137,6 @@ class FrameGapLeRobotDataset(LeRobotDataset):
             seq_item["task"] = "fold the tshirt"
 
         # Progress targets
-        # progress_start = (obs_indices[1] - ep_start) / (ep_end - ep_start) if ep_end > ep_start else 0.0
-        # progress_end = (idx - ep_start) / (ep_end - ep_start) if ep_end > ep_start else 0.0
-        # progress_list = torch.linspace(progress_start, progress_end, self.n_obs_steps, dtype=torch.float32)
         seq_item["targets"] = torch.zeros(1 + self.n_obs_steps + self.max_rewind_steps, dtype=torch.float32)
         state_with_rewind = torch.zeros([1 + self.n_obs_steps + self.max_rewind_steps, seq_item["state"].shape[-1]], dtype=torch.float32)
         state_with_rewind[:self.n_obs_steps + 1, :] = seq_item["state"]
@@ -176,8 +169,6 @@ class FrameGapLeRobotDataset(LeRobotDataset):
                     stage_idx = min(stage_idx, len(self.annotation_list) - 1)
                     seq_item["task"][i] = self.annotation_list[stage_idx]
         
-
-                
 
         del item, video_frames, query_ts_dict, obs_ts_range, progress_list, state_with_rewind, frame_relative_indices
 
