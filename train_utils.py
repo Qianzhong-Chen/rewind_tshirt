@@ -119,12 +119,27 @@ def plot_pred_vs_gt(pred: torch.Tensor, gt: torch.Tensor, indices: torch.Tensor,
 def plot_episode_result(ep_index, ep_result, gt_ep_result, x_offset, rollout_save_dir):
     save_dir = rollout_save_dir / f"episode_{ep_index}"
     save_dir.mkdir(parents=True, exist_ok=True)
-    ep_result = ep_result[x_offset:]  # Remove initial frames
-    gt_ep_result = gt_ep_result[x_offset:]  # Remove initial frames
-    timestep = np.arange(len(ep_result)) + x_offset
+
+    # Trim initial frames
+    ep_result = ep_result[x_offset:]
+    gt_ep_result = gt_ep_result[x_offset:]
+
+    # Convert to numpy arrays
+    ep_result_np = np.array(ep_result)
+    gt_ep_result_np = np.array(gt_ep_result)
+    timestep = np.arange(len(ep_result_np)) + x_offset
+
+    # Compute MSE and MAE
+    mse = np.mean((ep_result_np - gt_ep_result_np) ** 2)
+    mae = np.mean(np.abs(ep_result_np - gt_ep_result_np))
+
+    # Plot
     plt.figure()
-    plt.plot(timestep, np.array(ep_result), label="Predicted")
-    plt.plot(timestep, np.array(gt_ep_result), label="Ground Truth")
+    plt.plot(timestep, ep_result_np, label="Predicted")
+    plt.plot(timestep, gt_ep_result_np, label="Ground Truth")
+    # Add dummy lines for metrics in the legend
+    plt.plot([], [], ' ', label=f"MSE: {mse:.4f}")
+    plt.plot([], [], ' ', label=f"MAE: {mae:.4f}")
     plt.title("Episode Result")
     plt.xlabel("Time Step")
     plt.ylabel("Prediction")

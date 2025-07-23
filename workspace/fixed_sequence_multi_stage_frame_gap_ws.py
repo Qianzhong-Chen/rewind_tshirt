@@ -737,14 +737,14 @@ class RewindRewardWorkspace:
                 pred = torch.clip(reward_pred + stage_pred.float(), 0, cfg.model.num_classes-1)  # (B, T)
                 
                 if abs(idx - start_idx) < (cfg.model.n_obs_steps * cfg.model.frame_gap + 100):
-                    smoothed_item = pred[0, 1].item()
+                    smoothed_item = pred[0, cfg.model.n_obs_steps].item()
                 elif abs(idx - end_idx) < 100:
-                    smoothed_item = pred[0, 1].item()
+                    smoothed_item = pred[0, cfg.model.n_obs_steps].item()
                 else:
                     smoothed_item = torch.mean(pred[0, 1:1+cfg.model.n_obs_steps]).item() 
-                smoothed_item = min(max(smoothed_item, pred_ep_result[-1]-0.025), pred_ep_result[-1] + 0.05)
+                smoothed_item = min(max(smoothed_item, pred_ep_result[-1]-0.0125), pred_ep_result[-1] + 0.0125)
                 pred_ep_result.append(smoothed_item)
-                gt_ep_result.append(trg[0, 1].item())
+                gt_ep_result.append(trg[0, cfg.model.n_obs_steps].item())
 
             # save results
             save_dir = plot_episode_result(ep_index, pred_ep_result, gt_ep_result, x_offset, rollout_save_dir)
