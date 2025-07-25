@@ -216,7 +216,8 @@ class RewindRewardWorkspace:
                         else:
                             lang_emb = clip_encoder.encode_text(lang_strs) # lang_emb: (B, txt_dim)
 
-                    
+                    if cfg.model.no_state:
+                        state = torch.zeros_like(state, device=self.device)
                     stage_pred = stage_model(img_emb, lang_emb, state, lens)  # (B, N, T, num_classes)
                     reward_pred = reward_model(img_emb, lang_emb, state, lens)
 
@@ -302,7 +303,8 @@ class RewindRewardWorkspace:
                         else:
                             lang_emb = clip_encoder.encode_text(lang_strs) # lang_emb: (B, txt_dim)
 
-
+                        if cfg.model.no_state:
+                            state = torch.zeros_like(state, device=self.device)
                         stage_pred = stage_model(img_emb, lang_emb, state, lens)  # (B, T, num_classes)
                         reward_pred = reward_model(img_emb, lang_emb, state, lens)
 
@@ -361,6 +363,8 @@ class RewindRewardWorkspace:
                         else:
                             lang_emb = clip_encoder.encode_text(lang_strs) # lang_emb: (B, txt_dim)
 
+                        if cfg.model.no_state:
+                            state = torch.zeros_like(state, device=self.device)
                         stage_prob = stage_model(img_emb, lang_emb, state, lens).softmax(dim=-1)  # (B, T, num_classes)
                         stage_pred = stage_prob.argmax(dim=-1)  # (B, T)
                         reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
@@ -552,6 +556,8 @@ class RewindRewardWorkspace:
                 else:
                     lang_emb = clip_encoder.encode_text(lang_strs) # lang_emb: (B, txt_dim)
 
+                if cfg.model.no_state:
+                    state = torch.zeros_like(state, device=self.device)
                 stage_prob = stage_model(img_emb, lang_emb, state, lens).softmax(dim=-1)  # (B, T, num_classes)
                 stage_pred = stage_prob.argmax(dim=-1)  # (B, T)
                 reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
@@ -731,6 +737,8 @@ class RewindRewardWorkspace:
                 else:
                     lang_emb = clip_encoder.encode_text(lang_strs) # lang_emb: (B, txt_dim)
 
+                if cfg.model.no_state:
+                    state = torch.zeros_like(state, device=self.device)
                 stage_prob = stage_model(img_emb, lang_emb, state, lens).softmax(dim=-1)  # (B, T, num_classes)
                 stage_pred = stage_prob.argmax(dim=-1)  # (B, T)
                 reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
