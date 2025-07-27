@@ -86,5 +86,6 @@ cfg:
     run_times: 50        # number of rollouts
     video_run_times: 30 # number of episodes to evaluate in video
     # ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-07-19/00-52-24/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints" # non_dense anno, frame_gap=50
-    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-07-21/13-00-24/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints" # non_dense anno, frame_gap=15
+    # ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-07-21/13-00-24/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints" # non_dense anno, frame_gap=15
+    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-07-26/07-30-57/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints" # non_dense anno, non_joint, top_cam_only frame_gap=15
 
