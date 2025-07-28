@@ -150,3 +150,30 @@ def plot_episode_result(ep_index, ep_result, gt_ep_result, x_offset, rollout_sav
     plt.close()
 
     return str(save_dir)
+
+def plot_episode_result_raw_data(ep_index, ep_result, x_offset, rollout_save_dir):
+    save_dir = rollout_save_dir / f"episode_{ep_index}"
+    save_dir.mkdir(parents=True, exist_ok=True)
+
+    # Trim initial frames
+    ep_result = ep_result[x_offset:]
+
+    # Convert to numpy arrays
+    ep_result_np = np.array(ep_result)
+    timestep = np.arange(len(ep_result_np)) + x_offset
+
+   
+    # Plot
+    plt.figure()
+    plt.plot(timestep, ep_result_np, label="Predicted")
+    # Add dummy lines for metrics in the legend
+    plt.title("Episode Result")
+    plt.xlabel("Time Step")
+    plt.ylabel("Prediction")
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(save_dir / "plot.png")
+    plt.close()
+
+    return str(save_dir)

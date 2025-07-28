@@ -9,7 +9,8 @@ from tqdm import tqdm
 import wandb
 from lerobot.common.datasets.frame_gap_multi_stage_lerobot_dataset import FrameGapLeRobotDataset 
 from data_utils import comply_lerobot_batch_multi_stage, get_valid_episodes, split_train_eval_episodes, comply_lerobot_batch_multi_stage_video_eval
-from train_utils import plot_episode_result, set_seed, save_ckpt, plot_pred_vs_gt, get_normalizer_from_calculated, plot_episode_result
+from train_utils import plot_episode_result, set_seed, save_ckpt, plot_pred_vs_gt, get_normalizer_from_calculated, plot_episode_result, plot_episode_result_raw_data
+from raw_data_utils import get_frame_num, get_frame_data, get_traj_data
 from models.multi_stage_reward_net import RewardTransformer
 from models.multi_stage_estimate_net import StageTransformer
 from models.text_encoder import FrozenTextEncoder
@@ -769,4 +770,150 @@ class RewindRewardWorkspace:
             print(f"[Eval Video] episode_{ep_index} results saved to: {save_dir}, progress: {i+1} / {cfg.eval.video_run_times}")
 
 
-    
+    def eval_raw_data(self):
+        cfg = self.cfg
+        data_path = "/nfs_old/david_chen/dataset/tshirt_yam_200_0718/folding_tshirt/episode_z_zFIjhMduwurhFLtp01MJYJv25UttTH9ocB7q9xQic.npy.mp4"
+        state_normalizer = get_normalizer_from_calculated(cfg.general.state_norm_path, self.device)
+        ep_index = os.path.basename(data_path)
+
+        # --- encoders ---
+        # # DINO
+        # vis_encoder = FrozenVisionEncoder(cfg.encoders.vision_ckpt, self.device)
+        # text_encoder = FrozenTextEncoder(cfg.encoders.text_ckpt, self.device)
+        # vis_dim = vis_encoder.model.config.hidden_size
+        # txt_dim = text_encoder.model.config.hidden_size
+
+        # CLIP
+        clip_encoder = FrozenCLIPEncoder(cfg.encoders.vision_ckpt, self.device)
+        vis_encoder = clip_encoder
+        text_encoder = clip_encoder
+        vis_dim = 512
+        txt_dim = 512
+
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_010000_loss_0.007.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_010000_loss_0.033.pt"
+
+        # Create model instances
+        reward_model = RewardTransformer(d_model=cfg.model.d_model, 
+                                  vis_emb_dim=vis_dim, 
+                                  text_emb_dim=txt_dim,
+                                  state_dim=cfg.model.state_dim,
+                                  n_layers=cfg.model.n_layers,
+                                  n_heads=cfg.model.n_heads,
+                                  dropout=cfg.model.dropout,
+                                  max_seq_len=cfg.model.max_seq_len,
+                                  num_cameras=len(self.camera_names),
+                                  dense_annotation=cfg.model.dense_annotation)
+        stage_model = StageTransformer(d_model=cfg.model.d_model, 
+                                  vis_emb_dim=vis_dim, 
+                                  text_emb_dim=txt_dim,
+                                  state_dim=cfg.model.state_dim,
+                                  n_layers=cfg.model.n_layers,
+                                  n_heads=cfg.model.n_heads,
+                                  dropout=cfg.model.dropout,
+                                  max_seq_len=cfg.model.max_seq_len,
+                                  num_cameras=len(self.camera_names),
+                                  num_classes=cfg.model.num_classes,
+                                  dense_annotation=cfg.model.dense_annotation)
+
+        # Load checkpoints
+        reward_ckpt = torch.load(reward_model_path, map_location=self.device)
+        stage_ckpt = torch.load(stage_model_path, map_location=self.device)
+        # Load weights
+        reward_model.load_state_dict(reward_ckpt["model"])
+        stage_model.load_state_dict(stage_ckpt["model"])
+        # Move to device
+        reward_model.to(self.device)
+        stage_model.to(self.device)
+        reward_model.eval(); stage_model.eval()
+
+        # save path
+        datetime_str = datetime.now().strftime("%Y.%m.%d-%H.%M.%S")
+        rollout_save_dir =  Path(self.save_dir) / "eval_video" / f"{datetime_str}"  # convert to Path first
+        rollout_save_dir.mkdir(parents=True, exist_ok=True)
+        OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
+        evaled_list = []
+
+        pred_ep_result = [0]
+        x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
+        frame_num = get_frame_num(data_path)
+        traj_joint_data = get_traj_data(data_path)
+        # change to use tqdm
+        for idx in tqdm(range(frame_num), desc=f"Processing data"):
+            batch = get_frame_data(path=data_path, 
+                                   traj_joint_data=traj_joint_data, 
+                                   idx=idx,
+                                   n_obs_steps=cfg.model.n_obs_steps,
+                                   frame_gap=cfg.model.frame_gap,
+                                   max_rewind_steps=cfg.model.max_rewind_steps,
+                                   camera_names=cfg.general.camera_names,
+                                   device=self.device)
+            
+            B, T = batch["image_frames"][self.camera_names[0]].shape[:2]
+            img_list = []
+            for key in self.camera_names:
+                imgs = batch["image_frames"][key].flatten(0, 1).to(self.device) # (B*T, C, H, W)
+                img_list.append(imgs)
+            
+            lang_strs = ['fold the tshirt']
+            lens = torch.tensor([1+cfg.model.n_obs_steps], dtype=torch.int32, device=self.device)
+            state = batch["state"].to(self.device)
+            state = state_normalizer.normalize(state)
+            
+            # # DINO
+            # # img_emb = [vis_encoder(imgs).view(B, T, -1) for imgs in img_list]  
+            # # img_emb = torch.stack(img_emb, dim=1)
+            # imgs_all = torch.cat(img_list, dim=0)  # list of tensors (B*T, C, H, W) → (N*B*T, C, H, W)
+            # img_emb = vis_encoder(imgs_all)
+            # img_emb = img_emb.view(len(img_list), B, T, -1).permute(1, 0, 2, 3)
+            # lang_emb = text_encoder(lang_strs)
+
+            # CLIP
+            # img_emb = [clip_encoder.encode_image(imgs).view(B, T, -1) for imgs in img_list]
+            # img_emb = torch.stack(img_emb, dim=1)
+            imgs_all = torch.cat(img_list, dim=0)  # (N * B * T, C, H, W)
+            img_emb = clip_encoder.encode_image(imgs_all)  # (N * B * T, D)
+            img_emb = img_emb.view(len(img_list), B, T, -1).permute(1, 0, 2, 3)  # (B, N, T, D)
+            if cfg.model.dense_annotation:
+                lang_emb = torch.zeros((B, T, txt_dim), dtype=torch.float32, device=self.device)  # (B, T, txt_dim)
+                for i in range(B):
+                    lang_emb[i, :, :] = clip_encoder.encode_text(lang_strs[i])
+            else:
+                lang_emb = clip_encoder.encode_text(lang_strs) # lang_emb: (B, txt_dim)
+
+            if cfg.model.no_state:
+                state = torch.zeros_like(state, device=self.device)
+            stage_prob = stage_model(img_emb, lang_emb, state, lens).softmax(dim=-1)  # (B, T, num_classes)
+            stage_pred = stage_prob.argmax(dim=-1)  # (B, T)
+            reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
+            pred = torch.clip(reward_pred + stage_pred.float(), 0, cfg.model.num_classes-1)  # (B, T)
+            
+            if idx < (cfg.model.n_obs_steps * cfg.model.frame_gap + 100):
+                smoothed_item = pred[0, cfg.model.n_obs_steps].item()
+            elif abs(frame_num - idx) < 100:
+                smoothed_item = pred[0, cfg.model.n_obs_steps].item()
+            else:
+                smoothed_item = torch.mean(pred[0, 1:1+cfg.model.n_obs_steps]).item() 
+            smoothed_item = min(max(smoothed_item, pred_ep_result[-1]-0.0125), pred_ep_result[-1] + 0.0125)
+            pred_ep_result.append(smoothed_item)
+            
+
+        # save results
+        save_dir = plot_episode_result_raw_data(ep_index, pred_ep_result, x_offset, rollout_save_dir)
+        np.save(Path(save_dir) / "pred.npy", np.array(pred_ep_result))
+
+        # TODO: modify making video to work with raw data
+        # print(f"[Eval Video] episode_{ep_index} making video...")
+        # left_video_dir = Path(f"{data_path}/left_camera-images-rgb")
+        # middle_video_dir = Path(f"{data_path}/top_camera-images-rgb")
+        # right_video_dir = Path(f"{data_path}/right_camera-images-rgb")
+        # try:
+        #     produce_video(rollout_save_dir, left_video_dir, middle_video_dir, right_video_dir, ep_index, x_offset)
+        # except Exception as e:
+        #     print(f"[Eval Video] episode_{ep_index} video production failed: {e}")
+        
+        print(f"[Eval Video] episode_{ep_index} results saved to: {save_dir}")
+
+
