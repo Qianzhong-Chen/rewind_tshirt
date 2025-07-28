@@ -152,7 +152,7 @@ def plot_episode_result(ep_index, ep_result, gt_ep_result, x_offset, rollout_sav
     return str(save_dir)
 
 def plot_episode_result_raw_data(ep_index, ep_result, x_offset, rollout_save_dir):
-    save_dir = rollout_save_dir / f"episode_{ep_index}"
+    save_dir = rollout_save_dir / f"{ep_index}"
     save_dir.mkdir(parents=True, exist_ok=True)
 
     # Trim initial frames

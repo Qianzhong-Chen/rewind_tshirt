@@ -16,7 +16,7 @@ from models.multi_stage_estimate_net import StageTransformer
 from models.text_encoder import FrozenTextEncoder
 from models.vision_encoder import FrozenVisionEncoder
 from models.clip_encoder import FrozenCLIPEncoder
-from make_demo_video import produce_video
+from make_demo_video import produce_video, produce_video_raw_data
 import torch.nn as nn
 import cv2
 import numpy as np
@@ -905,14 +905,14 @@ class RewindRewardWorkspace:
         np.save(Path(save_dir) / "pred.npy", np.array(pred_ep_result))
 
         # TODO: modify making video to work with raw data
-        # print(f"[Eval Video] episode_{ep_index} making video...")
-        # left_video_dir = Path(f"{data_path}/left_camera-images-rgb")
-        # middle_video_dir = Path(f"{data_path}/top_camera-images-rgb")
-        # right_video_dir = Path(f"{data_path}/right_camera-images-rgb")
-        # try:
-        #     produce_video(rollout_save_dir, left_video_dir, middle_video_dir, right_video_dir, ep_index, x_offset)
-        # except Exception as e:
-        #     print(f"[Eval Video] episode_{ep_index} video production failed: {e}")
+        print(f"[Eval Video] episode_{ep_index} making video...")
+        left_video_path = Path(f"{data_path}/left_camera-images-rgb.mp4")
+        middle_video_path = Path(f"{data_path}/top_camera-images-rgb.mp4")
+        right_video_path = Path(f"{data_path}/right_camera-images-rgb.mp4")
+        try:
+            produce_video_raw_data(save_dir, left_video_path, middle_video_path, right_video_path, ep_index, x_offset)
+        except Exception as e:
+            print(f"[Eval Video] episode_{ep_index} video production failed: {e}")
         
         print(f"[Eval Video] episode_{ep_index} results saved to: {save_dir}")
 
