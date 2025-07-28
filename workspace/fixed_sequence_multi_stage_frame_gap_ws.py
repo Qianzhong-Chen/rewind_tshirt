@@ -772,7 +772,7 @@ class RewindRewardWorkspace:
 
     def eval_raw_data(self):
         cfg = self.cfg
-        data_path = "/nfs_old/david_chen/dataset/tshirt_yam_200_0718/folding_tshirt/episode_z_zFIjhMduwurhFLtp01MJYJv25UttTH9ocB7q9xQic.npy.mp4"
+        data_path = cfg.eval.raw_data_path
         state_normalizer = get_normalizer_from_calculated(cfg.general.state_norm_path, self.device)
         ep_index = os.path.basename(data_path)
 
