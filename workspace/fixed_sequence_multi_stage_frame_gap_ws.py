@@ -835,7 +835,7 @@ class RewindRewardWorkspace:
         rollout_save_dir.mkdir(parents=True, exist_ok=True)
         OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
 
-        pred_ep_result = [0]
+        
         x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
         data_dir = cfg.eval.raw_data_dir
         run_times = cfg.eval.raw_data_run_times
@@ -855,6 +855,7 @@ class RewindRewardWorkspace:
 
         for i in range(run_times):
             data_path = eval_list[i]
+            pred_ep_result = [0]
             # randomly select 
             ep_index = os.path.basename(data_path)
             frame_num = get_frame_num(data_path)

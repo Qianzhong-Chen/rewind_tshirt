@@ -150,7 +150,7 @@ def produce_video_raw_data(save_dir, left_video_path, middle_video_path, right_v
     save_dir = Path(save_dir)
     pred_path = save_dir / "pred.npy"
     output_path = save_dir / "combined_video.mp4"
-    frame_rate = 32
+    frame_rate = 35
 
     target_h, target_w = 448, 448  # resolution per panel
 
