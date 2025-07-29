@@ -853,13 +853,13 @@ class RewindRewardWorkspace:
             raise ValueError(f"Not enough episodes in {data_dir} to sample {run_times} items.")
 
 
-        for i in range(cfg.eval.raw_data_run_times):
+        for i in range(run_times):
             data_path = eval_list[i]
             # randomly select 
             ep_index = os.path.basename(data_path)
             frame_num = get_frame_num(data_path)
             traj_joint_data = get_traj_data(data_path)
-            # change to use tqdm
+            print(f"[EVAL_RAW]: process {i+1}/{run_times} episode: {ep_index}")
             for idx in tqdm(range(frame_num), desc=f"Processing data"):
                 batch = get_frame_data(path=data_path, 
                                     traj_joint_data=traj_joint_data, 
