@@ -21,7 +21,7 @@ import torch.nn as nn
 import cv2
 import numpy as np
 import time
-
+from torchvision.utils import save_image
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["WANDB_IGNORE_GLOBS"] = "**/rollout/**"
@@ -686,7 +686,8 @@ class RewindRewardWorkspace:
 
         for i in range(cfg.eval.video_run_times):
             # randomly select ep_index not in evaled_list
-            ep_index = random.choice([idx for idx in valid_episodes if idx not in evaled_list])
+            # ep_index = random.choice([idx for idx in valid_episodes if idx not in evaled_list])
+            ep_index = valid_episodes[i]
             # get ep_index's index in valid_episodes
             global_idx = valid_episodes.index(ep_index)
             evaled_list.append(ep_index)
@@ -704,7 +705,6 @@ class RewindRewardWorkspace:
                 batch = comply_lerobot_batch_multi_stage_video_eval(data_point, 
                                                                     camera_names=cfg.general.camera_names, 
                                                                     dense_annotation=cfg.model.dense_annotation)
-                
                 B, T = batch["image_frames"][self.camera_names[0]].shape[:2]
                 img_list = []
                 for key in self.camera_names:
@@ -846,13 +846,14 @@ class RewindRewardWorkspace:
             if f.startswith("episode_") and f.endswith(".npy.mp4")
         ]
         random.seed(cfg.general.seed)
-        # randomly select eval_list
-        if len(all_episodes) >= run_times:
-            eval_list = random.sample(all_episodes, run_times)
-        else:
-            raise ValueError(f"Not enough episodes in {data_dir} to sample {run_times} items.")
+        # # randomly select eval_list
+        # if len(all_episodes) >= run_times:
+        #     eval_list = random.sample(all_episodes, run_times)
+        # else:
+        #     raise ValueError(f"Not enough episodes in {data_dir} to sample {run_times} items.")
 
 
+        eval_list = all_episodes
         for i in range(run_times):
             data_path = eval_list[i]
             pred_ep_result = [0]
@@ -877,7 +878,7 @@ class RewindRewardWorkspace:
                     imgs = batch["image_frames"][key].flatten(0, 1).to(self.device) # (B*T, C, H, W)
                     img_list.append(imgs)
                 
-                lang_strs = ['fold the tshirt']
+                lang_strs = ["fold the tshirt"]
                 lens = torch.tensor([1+cfg.model.n_obs_steps], dtype=torch.int32, device=self.device)
                 state = batch["state"].to(self.device)
                 state = state_normalizer.normalize(state)
@@ -935,4 +936,247 @@ class RewindRewardWorkspace:
             
             print(f"[Eval Video] episode_{ep_index} results saved to: {save_dir}")
 
+
+    def eval_debug(self):
+        import random
+        cfg = self.cfg
+        valid_episodes = get_valid_episodes(cfg.general.repo_id)
+        dataset_val = FrameGapLeRobotDataset(repo_id=cfg.general.repo_id, 
+                                               horizon=cfg.model.horizon, 
+                                               episodes=valid_episodes, 
+                                               n_obs_steps=cfg.model.n_obs_steps, 
+                                               frame_gap=cfg.model.frame_gap,
+                                               max_rewind_steps=cfg.model.max_rewind_steps,
+                                               image_names=cfg.general.camera_names,
+                                               dense_annotation=cfg.model.dense_annotation,
+                                               annotation_list=cfg.model.annotation_list,
+                                               video_eval=True)
+        
+        dataloader_rollout = torch.utils.data.DataLoader(dataset_val, **cfg.rollout_dataloader)
+        state_normalizer = get_normalizer_from_calculated(cfg.general.state_norm_path, self.device)
+
+        # --- encoders ---
+        # # DINO
+        # vis_encoder = FrozenVisionEncoder(cfg.encoders.vision_ckpt, self.device)
+        # text_encoder = FrozenTextEncoder(cfg.encoders.text_ckpt, self.device)
+        # vis_dim = vis_encoder.model.config.hidden_size
+        # txt_dim = text_encoder.model.config.hidden_size
+
+        # CLIP
+        clip_encoder = FrozenCLIPEncoder(cfg.encoders.vision_ckpt, self.device)
+        vis_encoder = clip_encoder
+        text_encoder = clip_encoder
+        vis_dim = 512
+        txt_dim = 512
+
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_010000_loss_0.007.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_010000_loss_0.033.pt"
+
+        # Create model instances
+        reward_model = RewardTransformer(d_model=cfg.model.d_model, 
+                                  vis_emb_dim=vis_dim, 
+                                  text_emb_dim=txt_dim,
+                                  state_dim=cfg.model.state_dim,
+                                  n_layers=cfg.model.n_layers,
+                                  n_heads=cfg.model.n_heads,
+                                  dropout=cfg.model.dropout,
+                                  max_seq_len=cfg.model.max_seq_len,
+                                  num_cameras=len(self.camera_names),
+                                  dense_annotation=cfg.model.dense_annotation)
+        stage_model = StageTransformer(d_model=cfg.model.d_model, 
+                                  vis_emb_dim=vis_dim, 
+                                  text_emb_dim=txt_dim,
+                                  state_dim=cfg.model.state_dim,
+                                  n_layers=cfg.model.n_layers,
+                                  n_heads=cfg.model.n_heads,
+                                  dropout=cfg.model.dropout,
+                                  max_seq_len=cfg.model.max_seq_len,
+                                  num_cameras=len(self.camera_names),
+                                  num_classes=cfg.model.num_classes,
+                                  dense_annotation=cfg.model.dense_annotation)
+
+        # Load checkpoints
+        reward_ckpt = torch.load(reward_model_path, map_location=self.device)
+        stage_ckpt = torch.load(stage_model_path, map_location=self.device)
+        # Load weights
+        reward_model.load_state_dict(reward_ckpt["model"])
+        stage_model.load_state_dict(stage_ckpt["model"])
+        # Move to device
+        reward_model.to(self.device)
+        stage_model.to(self.device)
+        reward_model.eval(); stage_model.eval()
+
+        # save path
+        datetime_str = datetime.now().strftime("%Y.%m.%d-%H.%M.%S")
+        rollout_save_dir =  Path(self.save_dir) / "eval_video" / f"{datetime_str}"  # convert to Path first
+        rollout_save_dir.mkdir(parents=True, exist_ok=True)
+        OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
+        evaled_list = []
+
+        # eval_raw
+        data_dir = cfg.eval.raw_data_dir
+        run_times = cfg.eval.raw_data_run_times
+        # Get all valid episode paths
+        all_episodes = [
+            os.path.join(data_dir, f)
+            for f in os.listdir(data_dir)
+            if f.startswith("episode_") and f.endswith(".npy.mp4")
+        ]
+
+        eval_list = all_episodes
+
+        for i in range(cfg.eval.video_run_times):
+            # randomly select ep_index not in evaled_list
+            # ep_index = random.choice([idx for idx in valid_episodes if idx not in evaled_list])
+            ep_index = valid_episodes[i]
+            # get ep_index's index in valid_episodes
+            global_idx = valid_episodes.index(ep_index)
+            evaled_list.append(ep_index)
+            start_idx = dataset_val.episode_data_index["from"][global_idx].item()
+            end_idx = dataset_val.episode_data_index["to"][global_idx].item()
+            pred_ep_result = [0]
+            gt_ep_result = [0]
+            x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
+            # x_offset = 0
+
+            # eval_raw
+            data_path = eval_list[i]
+            pred_ep_result = [0]
+            # randomly select 
+            ep_index = os.path.basename(data_path)
+            frame_num = get_frame_num(data_path)
+            traj_joint_data = get_traj_data(data_path)
+            print(f"[Eval Video] Evaluating episode_{ep_index}, progress: {i} / {cfg.eval.video_run_times}")
+
+            # change to use tqdm
+            for idx in tqdm(range(start_idx, end_idx), desc=f"Processing episode {ep_index}"):
+                data_point = dataset_val.__getitem__(idx)
+                batch = comply_lerobot_batch_multi_stage_video_eval(data_point, 
+                                                                    camera_names=cfg.general.camera_names, 
+                                                                    dense_annotation=cfg.model.dense_annotation)
+                B, T = batch["image_frames"][self.camera_names[0]].shape[:2]
+                img_list = []
+                for key in self.camera_names:
+                    imgs = batch["image_frames"][key].flatten(0, 1).to(self.device) # (B*T, C, H, W)
+
+                    if idx >= 90: 
+                        # save debug images
+                        debug_save_dir = rollout_save_dir / f"step_{idx}" / "dataset"  # change this to your actual path
+                        os.makedirs(debug_save_dir, exist_ok=True)
+                        for i in range(1, 7):
+                            img = imgs[i]  # imgs[1] to imgs[6]
+                            save_image(img, os.path.join(debug_save_dir, f"{i}.png"))
+
+                    img_list.append(imgs)
+                
+                lang_strs = batch["tasks"]
+                trg = batch["targets"].to(self.device)
+                lens = batch["lengths"].to(self.device)
+                state = batch["state"].to(self.device)
+                state = state_normalizer.normalize(state)
+
+                # eval_raw
+                raw_batch = get_frame_data(path=data_path, 
+                                    traj_joint_data=traj_joint_data, 
+                                    idx=idx,
+                                    n_obs_steps=cfg.model.n_obs_steps,
+                                    frame_gap=cfg.model.frame_gap,
+                                    max_rewind_steps=cfg.model.max_rewind_steps,
+                                    camera_names=cfg.general.camera_names,
+                                    device=self.device)
+                
+                B, T = raw_batch["image_frames"][self.camera_names[0]].shape[:2]
+                raw_img_list = []
+                for key in self.camera_names:
+                    imgs = raw_batch["image_frames"][key].flatten(0, 1).to(self.device) # (B*T, C, H, W)
+
+                    if idx >= 90: 
+                        # save debug images
+                        debug_save_dir = rollout_save_dir / f"step_{idx}" / "raw"  # change this to your actual path
+                        os.makedirs(debug_save_dir, exist_ok=True)
+                        for i in range(1, 7):
+                            img = imgs[i]  # imgs[1] to imgs[6]
+                            save_image(img, os.path.join(debug_save_dir, f"{i}.png"))
+
+                    raw_img_list.append(imgs)
+                
+                raw_lang_strs = ["fold the tshirt"]
+                raw_lens = torch.tensor([1+cfg.model.n_obs_steps], dtype=torch.int32, device=self.device)
+                raw_state = raw_batch["state"].to(self.device)
+                raw_state = state_normalizer.normalize(raw_state)
+
+               
+                # CLIP
+                # img_emb = [clip_encoder.encode_image(imgs).view(B, T, -1) for imgs in img_list]
+                # img_emb = torch.stack(img_emb, dim=1)
+                imgs_all = torch.cat(img_list, dim=0)  # (N * B * T, C, H, W)
+                img_emb = clip_encoder.encode_image(imgs_all)  # (N * B * T, D)
+                img_emb = img_emb.view(len(img_list), B, T, -1).permute(1, 0, 2, 3)  # (B, N, T, D)
+                if cfg.model.dense_annotation:
+                    lang_emb = torch.zeros((B, T, txt_dim), dtype=torch.float32, device=self.device)  # (B, T, txt_dim)
+                    for i in range(B):
+                        lang_emb[i, :, :] = clip_encoder.encode_text(lang_strs[i])
+                else:
+                    lang_emb = clip_encoder.encode_text(lang_strs) # lang_emb: (B, txt_dim)
+
+                # raw_eval
+                raw_imgs_all = torch.cat(raw_img_list, dim=0)  # (N * B * T, C, H, W)
+                raw_img_emb = clip_encoder.encode_image(raw_imgs_all)  # (N * B * T, D)
+                raw_img_emb = raw_img_emb.view(len(raw_img_list), B, T, -1).permute(1, 0, 2, 3)  # (B, N, T, D)
+                if cfg.model.dense_annotation:
+                    raw_lang_emb = torch.zeros((B, T, txt_dim), dtype=torch.float32, device=self.device)  # (B, T, txt_dim)
+                    for i in range(B):
+                        raw_lang_emb[i, :, :] = clip_encoder.encode_text(lang_strs[i])
+                else:
+                    raw_lang_emb = clip_encoder.encode_text(lang_strs) # lang_emb: (B, txt_dim)
+
+                if cfg.model.no_state:
+                    state = torch.zeros_like(state, device=self.device)
+                    raw_state = torch.zeros_like(raw_state, device=self.device)
+                
+                print(f"img_gap_avg: {F.mse_loss(img_emb, raw_img_emb).item()}, img_gap_max: {torch.abs(img_emb - raw_img_emb).max()}")
+                # print(f"lang_gap: {F.mse_loss(lang_emb, raw_lang_emb).item()}")
+                # print(f"state_gap: {(state - raw_state)}")
+                # print(f"lens_gap: {(lens - raw_lens)}")
+
+                stage_prob = stage_model(img_emb, lang_emb, state, lens).softmax(dim=-1)  # (B, T, num_classes)
+                stage_pred = stage_prob.argmax(dim=-1)  # (B, T)
+                reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
+                pred = torch.clip(reward_pred + stage_pred.float(), 0, cfg.model.num_classes-1)  # (B, T)
+
+                raw_stage_prob = stage_model(raw_img_emb, raw_lang_emb, raw_state, raw_lens).softmax(dim=-1)  # (B, T, num_classes)
+                raw_stage_pred = raw_stage_prob.argmax(dim=-1)  # (B, T)
+                raw_reward_pred = reward_model(raw_img_emb, raw_lang_emb, raw_state, raw_lens)  # (B, T)
+                raw_pred = torch.clip(raw_reward_pred + raw_stage_pred.float(), 0, cfg.model.num_classes-1)  # (B, T)
+
+                print(f"result gap: {pred[0, 1:7] - raw_pred[0, 1:7]}")
+
+                if idx > x_offset:
+                    import pdb; pdb.set_trace()
+                
+                if abs(idx - start_idx) < (cfg.model.n_obs_steps * cfg.model.frame_gap + 100):
+                    smoothed_item = pred[0, cfg.model.n_obs_steps].item()
+                elif abs(idx - end_idx) < 100:
+                    smoothed_item = pred[0, cfg.model.n_obs_steps].item()
+                else:
+                    smoothed_item = torch.mean(pred[0, 1:1+cfg.model.n_obs_steps]).item() 
+                smoothed_item = min(max(smoothed_item, pred_ep_result[-1]-0.0125), pred_ep_result[-1] + 0.0125)
+                pred_ep_result.append(smoothed_item)
+                gt_ep_result.append(trg[0, cfg.model.n_obs_steps].item())
+
+            # save results
+            save_dir = plot_episode_result(ep_index, pred_ep_result, gt_ep_result, x_offset, rollout_save_dir)
+            np.save(Path(save_dir) / "pred.npy", np.array(pred_ep_result))
+            np.save(Path(save_dir) / "gt.npy", np.array(gt_ep_result))
+            print(f"[Eval Video] episode_{ep_index} making video...")
+            left_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/{cfg.general.repo_id}/videos/chunk-000/left_camera-images-rgb")
+            middle_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/{cfg.general.repo_id}/videos/chunk-000/top_camera-images-rgb")
+            right_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/{cfg.general.repo_id}/videos/chunk-000/right_camera-images-rgb")
+            try:
+                produce_video(rollout_save_dir, left_video_dir, middle_video_dir, right_video_dir, ep_index, x_offset)
+            except Exception as e:
+                print(f"[Eval Video] episode_{ep_index} video production failed: {e}")
+            print(f"[Eval Video] episode_{ep_index} results saved to: {save_dir}, progress: {i+1} / {cfg.eval.video_run_times}")
 

@@ -6,7 +6,7 @@ from hydra.utils import instantiate
 
 # Parse --mode before Hydra sees sys.argv
 parser = argparse.ArgumentParser()
-parser.add_argument("--mode", type=str, default="eval", choices=["eval", "video", "raw_data"])
+parser.add_argument("--mode", type=str, default="eval", choices=["eval", "video", "raw_data", "debug"])
 args, remaining_argv = parser.parse_known_args()
 
 # Replace sys.argv with only the remaining args for Hydra
@@ -22,6 +22,8 @@ def main(cfg: DictConfig):
         workspace.eval_video()
     elif args.mode == "raw_data":
         workspace.eval_raw_data()
+    elif args.mode == "debug":
+        workspace.eval_debug()
     else:
         raise ValueError(f"Unsupported mode: {args.mode}")
 

@@ -86,8 +86,6 @@ def convert_to_float32(img: np.ndarray) -> np.ndarray:
         img = img.astype(np.float32) / 255.0
     return img
 
-
-
 def get_traj_data(path):
     left_joint = Path(path) / "left-joint_pos.npy"
     left_joint_data = np.load(left_joint, allow_pickle=True)
@@ -111,9 +109,11 @@ def get_frame_data(path,
                    device='cuda:0'):
     
     
-    obs_hist_steps = n_obs_steps * frame_gap
     frames_indices = [0] * (n_obs_steps + 1) # always have the inital frame
-    if idx < obs_hist_steps:
+    required_history = n_obs_steps * frame_gap
+    if idx - required_history < 0:
+        idx = required_history
+    if idx < required_history:
         pass
     else:
         frames_indices = [0] + list(reversed([idx - i * frame_gap for i in range(n_obs_steps)]))
@@ -147,6 +147,8 @@ def get_frame_data(path,
             if not ret:
                 print(f"Failed to read frame {frame_idx} from {video_path}")
                 return None
+
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # <-- Fix BGR to RGB
             img.append(frame)
 
         img = np.array(img)

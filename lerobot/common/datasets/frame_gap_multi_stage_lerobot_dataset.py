@@ -72,9 +72,7 @@ class FrameGapLeRobotDataset(LeRobotDataset):
             idx = ep_start + required_history
 
         # Compute frame indices for observation
-        obs_indices = [ep_start] + [idx - i * self.frame_gap for i in reversed(range(self.n_obs_steps))]
-
-
+        obs_indices = [ep_start] + [idx - i * self.frame_gap for i in reversed(range(self.n_obs_steps))]        
         sequence = self.hf_dataset.select(obs_indices)
 
         # Extract sequence data
@@ -97,8 +95,10 @@ class FrameGapLeRobotDataset(LeRobotDataset):
         query_ts_dict = {key: obs_ts_range for key in self.wrapped_video_keys}
         video_frames = self._query_videos(query_ts_dict, ep_idx)
         
-
-        rewind_flag = torch.rand(1).item() < 0.8 and idx > ep_start + required_history
+        if not self.video_eval:
+            rewind_flag = torch.rand(1).item() < 0.8 and idx > ep_start + required_history
+        else:
+            rewind_flag = False
         rewind_step = None
         for key in self.wrapped_video_keys:
             frames = video_frames[key]
