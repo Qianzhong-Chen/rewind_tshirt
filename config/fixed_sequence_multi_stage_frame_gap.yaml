@@ -90,8 +90,9 @@ cfg:
     # ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-07-19/00-52-24/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints" # non_dense anno, frame_gap=50
     # ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-07-21/13-00-24/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints" # non_dense anno, frame_gap=15
     ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-07-26/07-30-57/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints" # non_dense anno, non_joint, top_cam_only frame_gap=15
-    raw_data_path: "/nfs_old/david_chen/dataset/tshirt_yam_200_0718/folding_tshirt/episode_z_zFIjhMduwurhFLtp01MJYJv25UttTH9ocB7q9xQic.npy.mp4"
-    raw_data_dir: "/nfs_old/david_chen/dataset/tshirt_yam_200_0718/folding_tshirt"
+    # raw_data_path: "/nfs_old/david_chen/dataset/tshirt_yam_200_0718/folding_tshirt/episode_z_zFIjhMduwurhFLtp01MJYJv25UttTH9ocB7q9xQic.npy.mp4"
+    # raw_data_dir: "/nfs_old/david_chen/dataset/tshirt_yam_200_0718/folding_tshirt" # bad results, 200h yam only dataset, not reward model training set
+    raw_data_dir: "/nfs_old/david_chen/dataset/tshirt_reward_anno_300"
     # raw_data_dir: /nfs_old/david_chen/dataset/tshirt_reward_test
     # raw_data_dir: /nfs_old/david_chen/dataset/tshirt_reward_debug
     raw_data_run_times: 50

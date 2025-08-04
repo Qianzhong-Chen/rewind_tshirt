@@ -685,10 +685,8 @@ class RewindRewardWorkspace:
         evaled_list = []
 
         for i in range(cfg.eval.video_run_times):
-            # randomly select ep_index not in evaled_list
-            # ep_index = random.choice([idx for idx in valid_episodes if idx not in evaled_list])
-            ep_index = valid_episodes[i]
-            # get ep_index's index in valid_episodes
+            ep_index = random.choice([idx for idx in valid_episodes if idx not in evaled_list])
+            # ep_index = valid_episodes[i]
             global_idx = valid_episodes.index(ep_index)
             evaled_list.append(ep_index)
             start_idx = dataset_val.episode_data_index["from"][global_idx].item()
@@ -845,15 +843,16 @@ class RewindRewardWorkspace:
             for f in os.listdir(data_dir)
             if f.startswith("episode_") and f.endswith(".npy.mp4")
         ]
-        random.seed(cfg.general.seed)
-        # # randomly select eval_list
-        # if len(all_episodes) >= run_times:
-        #     eval_list = random.sample(all_episodes, run_times)
-        # else:
-        #     raise ValueError(f"Not enough episodes in {data_dir} to sample {run_times} items.")
-
-
         eval_list = all_episodes
+        
+        random.seed(cfg.general.seed)
+        # randomly select eval_list
+        if len(all_episodes) >= run_times:
+            eval_list = random.sample(all_episodes, run_times)
+        else:
+            raise ValueError(f"Not enough episodes in {data_dir} to sample {run_times} items.")
+
+
         for i in range(run_times):
             data_path = eval_list[i]
             pred_ep_result = [0]
