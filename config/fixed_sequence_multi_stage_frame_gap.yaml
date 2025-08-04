@@ -6,7 +6,8 @@ cfg:
     project_name: "rewind_reward_fixed_seq_model_frame_gap_multi_stage"
     task_name: "fold_tshirt"
    
-    repo_id: Qianzhong-Chen/tshirt_reward_anno_0717 # two-staged dataset, 1epoch 15k steps
+    # repo_id: Qianzhong-Chen/tshirt_reward_anno_0717 # 300 dataset, combine yam and arx
+    repo_id: Qianzhong-Chen/tshirt_reward_yam_only_0803 # 329 dataset, yam only
     # repo_id: Qianzhong-Chen/tshirt_reward_test_0717
     # repo_id: Qianzhong-Chen/tshirt_reward_debug
     state_norm_path: "/home/david_chen/rewind_tshirt/assets/fold_tshirt.json"
@@ -15,7 +16,7 @@ cfg:
     device: "cuda"        # "cpu" for debugging
 
   dataloader:
-    batch_size: 48
+    batch_size: 64
     num_workers: 16 # nproc=32
     shuffle: True
     pin_memory: True
@@ -46,15 +47,15 @@ cfg:
     text_ckpt: "openai/clip-vit-base-patch32"
 
   model:
-    d_model: 512          # CLS width of dinov2-base
+    d_model: 768          # CLS width of dinov2-base
     max_seq_len: 128
-    n_layers: 4
-    n_heads: 8
+    n_layers: 6
+    n_heads: 12
     dropout: 0.1
-    horizon: 6
-    n_obs_steps: 6
+    horizon: 8
+    n_obs_steps: 8
     max_rewind_steps: 4
-    frame_gap: 15
+    frame_gap: 30
     state_dim: 14
     no_state: True
     num_classes: 6 # num_classes = num_stage + 1
@@ -71,15 +72,15 @@ cfg:
     weight_decay: 1.0e-3
     betas: [0.9, 0.95]
     eps: 1.0e-8
-    warmup_steps: 500
-    total_steps: 30_000
+    warmup_steps: 1000
+    total_steps: 75_000
 
   train:
     num_epochs: 4
     grad_clip: 1.0
     log_every: 50        # steps
     eval_every: 1        # epochs
-    save_every: 5000     # steps
+    save_every: 5_000     # steps
     val_portion: 0.1     # fraction of episodes for validation
     rollout_every: 1     # epoch
     rollout_steps: 10    # steps per rollout
