@@ -38,12 +38,6 @@ def draw_plot_frame(step: int, pred, gt, x_offset, width=448, height=448):
     else:
         ax.text(step + x_offset, text_y, "Task Finished", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
 
-    
-    # canvas = FigureCanvas(fig)
-    # canvas.draw()
-    # img = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
-    # img = img.reshape(canvas.get_width_height()[::-1] + (3,))
-    # plt.close(fig)
 
     canvas = FigureCanvas(fig)
     canvas.draw()
