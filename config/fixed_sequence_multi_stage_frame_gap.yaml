@@ -4,12 +4,16 @@ cfg:
   general:
     # dataset specific
     project_name: "rewind_reward_fixed_seq_model_frame_gap_multi_stage"
-    task_name: "fold_tshirt"
+    task_name: "fold_tshirt_dense_annotation"
    
+    # Sparse anno
     # repo_id: Qianzhong-Chen/tshirt_reward_anno_0717 # 300 dataset, combine yam and arx
-    repo_id: Qianzhong-Chen/tshirt_reward_yam_only_multi_0804 # 329 dataset, yam only
+    # repo_id: Qianzhong-Chen/tshirt_reward_yam_only_multi_0804 # 329 dataset, yam only
     # repo_id: Qianzhong-Chen/tshirt_reward_test_0717
     # repo_id: Qianzhong-Chen/tshirt_reward_debug
+
+    # Dense anno
+    repo_id: Qianzhong-Chen/tshirt_reward_hlm_dense_0812
     state_norm_path: "/home/david_chen/rewind_tshirt/assets/fold_tshirt.json"
     camera_names:  [top_camera-images-rgb]
     seed: 42
@@ -17,21 +21,21 @@ cfg:
 
   dataloader:
     batch_size: 64
-    num_workers: 16 # nproc=32
+    num_workers: 12 # nproc=32
     shuffle: True
     pin_memory: True
     persistent_workers: True
 
   val_dataloader:
     batch_size: 48
-    num_workers: 16
+    num_workers: 12
     shuffle: False
     pin_memory: True
     persistent_workers: True
 
   rollout_dataloader:
     batch_size: 1 # don't change
-    num_workers: 20
+    num_workers: 12
     shuffle: True
     pin_memory: True
     persistent_workers: True
@@ -58,22 +62,37 @@ cfg:
     frame_gap: 30
     state_dim: 14
     no_state: True
-    num_classes: 6 # num_classes = num_stage + 1
     dense_annotation: False # check the rule inside the dataset class to allign with progress
-    annotation_list: ["Grab the tshirt from the pile", 
-                      "Move the tshirt to the center of the board",
-                      "Flatten the tshirt out",
-                      "Fold the tshirt",
-                      "Neatly place the folded tshirt to the corner",
-                      "task finished"]
+
+    # Sparse anno
+    # num_classes: 6 # num_classes = num_stage + 1
+    # annotation_list: ["Grab the tshirt from the pile", 
+    #                   "Move the tshirt to the center of the board",
+    #                   "Flatten the tshirt out",
+    #                   "Fold the tshirt",
+    #                   "Neatly place the folded tshirt to the corner",
+    #                   "task finished"]
+
+    # Dense anno
+    num_classes: 9 # num_classes = num_stage + 1
+    annotation_list: [
+        "grab crumpled tshirt and move to center",
+        "flatten out the tshirt",
+        "grab near side and fold one-third",
+        "grab far side and fold into rectangle",
+        "rotate the tshirt 90 degrees",
+        "grab bottom and fold one-third",
+        "grab two-third side and fold into square",
+        "put folded tshirt into corner"
+    ]
 
   optim:
-    lr: 2.5e-5
+    lr: 5e-5
     weight_decay: 5.0e-3
     betas: [0.9, 0.95]
     eps: 1.0e-8
     warmup_steps: 1000
-    total_steps: 85_000
+    total_steps: 100_000
 
   train:
     num_epochs: 4
@@ -88,14 +107,14 @@ cfg:
   eval:
     run_times: 50        # number of rollouts
     video_run_times: 50 # number of episodes to evaluate in video
-    # ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-07-19/00-52-24/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints" # non_dense anno, frame_gap=50
-    # ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-07-21/13-00-24/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints" # non_dense anno, frame_gap=15
-    # ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-07-26/07-30-57/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints" # non_dense anno, non_joint, top_cam_only frame_gap=15
+    raw_data_run_times: 50
+    
+    # Sparse
     ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-05/05-51-36/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints"
-    # raw_data_path: "/nfs_old/david_chen/dataset/tshirt_yam_200_0718/folding_tshirt/episode_z_zFIjhMduwurhFLtp01MJYJv25UttTH9ocB7q9xQic.npy.mp4"
-    # raw_data_dir: "/nfs_old/david_chen/dataset/tshirt_yam_200_0718/folding_tshirt" # bad results, 200h yam only dataset, not reward model training set
-    # raw_data_dir: "/nfs_old/david_chen/dataset/tshirt_reward_anno_300"
     raw_data_dir: "/nfs_old/dataset/tshirt_reward_yam_only/folding_tshirt"
     # raw_data_dir: /nfs_old/david_chen/dataset/tshirt_reward_test
     # raw_data_dir: /nfs_old/david_chen/dataset/tshirt_reward_debug
-    raw_data_run_times: 50
+
+    # Dense
+
+    
