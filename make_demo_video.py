@@ -24,17 +24,53 @@ def draw_plot_frame(step: int, pred, gt, x_offset, width=448, height=448):
     current_gt = gt[step]
     text_y = ax.get_ylim()[1] * 0.9  # position near top
 
-
+    # Sparse anno
+    # annotation_list= ["Grab the tshirt from the pile", 
+    #                   "Move the tshirt to the center of the board",
+    #                   "Flatten the tshirt out",
+    #                   "Fold the tshirt",
+    #                   "Neatly place the folded tshirt to the corner",
+    #                   "task finished"]
+    # if current_gt <= 1.0:
+    #     ax.text(step + x_offset, text_y, "Grab the tshirt from the pile", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    # elif 1.0 <= current_gt < 2.0:
+    #     ax.text(step + x_offset, text_y, "Move the tshirt to the center of the board", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    # elif 2.0 <= current_gt < 3.0:
+    #     ax.text(step + x_offset, text_y, "Flatten the tshirt out", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    # elif 3.0 <= current_gt < 4.0:
+    #     ax.text(step + x_offset, text_y, "Fold the tshirt", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    # elif 4.0 <= current_gt < 5.0:
+    #     ax.text(step + x_offset, text_y, "Neatly place the folded tshirt to the corner", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    # else:
+    #     ax.text(step + x_offset, text_y, "Task Finished", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    
+    # Dense anno
+    annotation_list= [
+            "grab crumpled tshirt and move to center",
+            "flatten out the tshirt",
+            "grab near side and fold one-third",
+            "grab far side and fold into rectangle",
+            "rotate the tshirt 90 degrees",
+            "grab bottom and fold one-third",
+            "grab two-third side and fold into square",
+            "put folded tshirt into corner"
+        ]
     if current_gt <= 1.0:
-        ax.text(step + x_offset, text_y, "Grab the tshirt from the pile", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+        ax.text(step + x_offset, text_y, "grab crumpled tshirt and move to center", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
     elif 1.0 <= current_gt < 2.0:
-        ax.text(step + x_offset, text_y, "Move the tshirt to the center of the board", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+        ax.text(step + x_offset, text_y, "flatten out the tshirt", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
     elif 2.0 <= current_gt < 3.0:
-        ax.text(step + x_offset, text_y, "Flatten the tshirt out", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+        ax.text(step + x_offset, text_y, "grab near side and fold one-third", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
     elif 3.0 <= current_gt < 4.0:
-        ax.text(step + x_offset, text_y, "Fold the tshirt", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+        ax.text(step + x_offset, text_y, "grab far side and fold into rectangle", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
     elif 4.0 <= current_gt < 5.0:
-        ax.text(step + x_offset, text_y, "Neatly place the folded tshirt to the corner", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+        ax.text(step + x_offset, text_y, "rotate the tshirt 90 degrees", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    elif 5.0 <= current_gt < 6.0:
+        ax.text(step + x_offset, text_y, "grab bottom and fold one-third", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    elif 6.0 <= current_gt < 7.0:
+        ax.text(step + x_offset, text_y, "grab two-third side and fold into square", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    elif 7.0 <= current_gt < 8.0:
+        ax.text(step + x_offset, text_y, "put folded tshirt into corner", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
     else:
         ax.text(step + x_offset, text_y, "Task Finished", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
 
@@ -65,19 +101,50 @@ def draw_plot_frame_raw_data(step: int, pred, x_offset, width=448, height=448):
     current_pred = pred[step]
     text_y = ax.get_ylim()[1] * 0.9  # position near top
 
-
+    # Sparse anno
+    # if current_pred <= 1.0:
+    #     ax.text(step + x_offset, text_y, "Grab the tshirt from the pile", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    # elif 1.0 <= current_pred < 2.0:
+    #     ax.text(step + x_offset, text_y, "Move the tshirt to the center of the board", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    # elif 2.0 <= current_pred < 3.0:
+    #     ax.text(step + x_offset, text_y, "Flatten the tshirt out", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    # elif 3.0 <= current_pred < 4.0:
+    #     ax.text(step + x_offset, text_y, "Fold the tshirt", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    # elif 4.0 <= current_pred < 5.0:
+    #     ax.text(step + x_offset, text_y, "Neatly place the folded tshirt to the corner", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    # else:
+    #     ax.text(step + x_offset, text_y, "Task Finished", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    
+    # Dense anno
+    annotation_list= [
+            "grab crumpled tshirt and move to center",
+            "flatten out the tshirt",
+            "grab near side and fold one-third",
+            "grab far side and fold into rectangle",
+            "rotate the tshirt 90 degrees",
+            "grab bottom and fold one-third",
+            "grab two-third side and fold into square",
+            "put folded tshirt into corner"
+        ]
     if current_pred <= 1.0:
-        ax.text(step + x_offset, text_y, "Grab the tshirt from the pile", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+        ax.text(step + x_offset, text_y, "grab crumpled tshirt and move to center", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
     elif 1.0 <= current_pred < 2.0:
-        ax.text(step + x_offset, text_y, "Move the tshirt to the center of the board", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+        ax.text(step + x_offset, text_y, "flatten out the tshirt", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
     elif 2.0 <= current_pred < 3.0:
-        ax.text(step + x_offset, text_y, "Flatten the tshirt out", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+        ax.text(step + x_offset, text_y, "grab near side and fold one-third", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
     elif 3.0 <= current_pred < 4.0:
-        ax.text(step + x_offset, text_y, "Fold the tshirt", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+        ax.text(step + x_offset, text_y, "grab far side and fold into rectangle", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
     elif 4.0 <= current_pred < 5.0:
-        ax.text(step + x_offset, text_y, "Neatly place the folded tshirt to the corner", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+        ax.text(step + x_offset, text_y, "rotate the tshirt 90 degrees", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    elif 5.0 <= current_pred < 6.0:
+        ax.text(step + x_offset, text_y, "grab bottom and fold one-third", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    elif 6.0 <= current_pred < 7.0:
+        ax.text(step + x_offset, text_y, "grab two-third side and fold into square", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    elif 7.0 <= current_pred < 8.0:
+        ax.text(step + x_offset, text_y, "put folded tshirt into corner", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
     else:
         ax.text(step + x_offset, text_y, "Task Finished", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+
 
     canvas = FigureCanvas(fig)
     canvas.draw()

@@ -467,10 +467,10 @@ class RewindRewardWorkspace:
         vis_dim = 512
         txt_dim = 512
 
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_010000_loss_0.007.pt"
-        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_010000_loss_0.033.pt"
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_035000_loss_0.018.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_035000_loss_0.089.pt"
 
         # Create model instances
         reward_model = RewardTransformer(d_model=cfg.model.d_model, 
@@ -638,10 +638,10 @@ class RewindRewardWorkspace:
         vis_dim = 512
         txt_dim = 512
 
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_010000_loss_0.007.pt"
-        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_010000_loss_0.033.pt"
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_035000_loss_0.018.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_035000_loss_0.089.pt"
 
         # Create model instances
         reward_model = RewardTransformer(d_model=cfg.model.d_model, 
@@ -788,10 +788,10 @@ class RewindRewardWorkspace:
         vis_dim = 512
         txt_dim = 512
 
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_010000_loss_0.007.pt"
-        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_010000_loss_0.033.pt"
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_035000_loss_0.018.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_035000_loss_0.089.pt"
 
         # Create model instances
         reward_model = RewardTransformer(d_model=cfg.model.d_model, 
@@ -841,7 +841,7 @@ class RewindRewardWorkspace:
         all_episodes = [
             os.path.join(data_dir, f)
             for f in os.listdir(data_dir)
-            if f.startswith("episode_") and f.endswith(".npy.mp4")
+            if f.startswith("episode_")
         ]
         eval_list = all_episodes
         
@@ -917,6 +917,15 @@ class RewindRewardWorkspace:
                 else:
                     smoothed_item = torch.mean(pred[0, 1:1+cfg.model.n_obs_steps]).item() 
                 smoothed_item = min(max(smoothed_item, pred_ep_result[-1]-0.0125), pred_ep_result[-1] + 0.0125)
+                
+                # if idx < (cfg.model.n_obs_steps * cfg.model.frame_gap + 100):
+                #     smoothed_item = pred[0, cfg.model.n_obs_steps].item()
+                # elif abs(frame_num - idx) < 100:
+                #     smoothed_item = pred[0, cfg.model.n_obs_steps].item()
+                # else:
+                #     smoothed_item = torch.mean(pred[0, 5:1+cfg.model.n_obs_steps]).item() 
+                # smoothed_item = min(max(smoothed_item, pred_ep_result[-1]-0.02), pred_ep_result[-1] + 0.02)
+                
                 pred_ep_result.append(smoothed_item)
                 
 
@@ -968,10 +977,10 @@ class RewindRewardWorkspace:
         vis_dim = 512
         txt_dim = 512
 
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_010000_loss_0.007.pt"
-        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_010000_loss_0.033.pt"
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_035000_loss_0.018.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_035000_loss_0.089.pt"
 
         # Create model instances
         reward_model = RewardTransformer(d_model=cfg.model.d_model, 

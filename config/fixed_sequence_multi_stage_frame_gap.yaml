@@ -65,16 +65,18 @@ cfg:
     dense_annotation: False # check the rule inside the dataset class to allign with progress
 
     # Sparse anno
-    # num_classes: 6 # num_classes = num_stage + 1
-    # annotation_list: ["Grab the tshirt from the pile", 
-    #                   "Move the tshirt to the center of the board",
-    #                   "Flatten the tshirt out",
-    #                   "Fold the tshirt",
-    #                   "Neatly place the folded tshirt to the corner",
-    #                   "task finished"]
+    num_classes: 6 # num_classes = num_stage + 1
+    annotation_list: [
+            "Grab the tshirt from the pile", 
+            "Move the tshirt to the center of the board",
+            "Flatten the tshirt out",
+            "Fold the tshirt",
+            "Neatly place the folded tshirt to the corner",
+            "task finished"
+    ]
 
     # Dense anno
-    num_classes: 9 # num_classes = num_stage + 1
+    num_classes: 8 # num_classes = num_stage + 1
     annotation_list: [
         "grab crumpled tshirt and move to center",
         "flatten out the tshirt",
@@ -107,14 +109,18 @@ cfg:
   eval:
     run_times: 50        # number of rollouts
     video_run_times: 50 # number of episodes to evaluate in video
-    raw_data_run_times: 50
+    raw_data_run_times: 17
     
-    # Sparse
-    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-05/05-51-36/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints"
-    raw_data_dir: "/nfs_old/dataset/tshirt_reward_yam_only/folding_tshirt"
+    # # Sparse
+    # ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-05/05-51-36/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints"
+    # raw_data_dir: "/nfs_old/dataset/tshirt_reward_yam_only/folding_tshirt"
     # raw_data_dir: /nfs_old/david_chen/dataset/tshirt_reward_test
     # raw_data_dir: /nfs_old/david_chen/dataset/tshirt_reward_debug
 
     # Dense
+    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-13/09-52-35/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_dense_annotation/checkpoints"
+    # raw_data_dir: "/nfs_old/david_chen/dataset/hlm_tshirt/folding_tshirt_pile_and_stacking" # train set
+    # raw_data_dir: "/nfs_old/dataset/tshirt_reward_yam_only/folding_tshirt" # valid set
+    raw_data_dir: "/nfs_old/david_chen/dataset/real_eval/sz_03_0813"
 
     
