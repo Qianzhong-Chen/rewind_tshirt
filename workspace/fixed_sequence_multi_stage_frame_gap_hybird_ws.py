@@ -25,7 +25,7 @@ from torchvision.utils import save_image
 import os
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["WANDB_IGNORE_GLOBS"] = "**/rollout/**"
-os.environ["WANDB_MODE"] = "disabled"
+# os.environ["WANDB_MODE"] = "disabled"
 
 def infinite_loader(dl):
     """Yield batches forever; reshuffles each pass if dl.shuffle=True."""

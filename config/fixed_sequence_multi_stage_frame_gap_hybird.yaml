@@ -6,14 +6,12 @@ cfg:
     project_name: "rewind_reward_fixed_seq_model_frame_gap_multi_stage"
     task_name: "fold_tshirt_hybird"
    
-    # Sparse anno
     # repo_id: Qianzhong-Chen/tshirt_reward_anno_0717 # 300 dataset, combine yam and arx
     # repo_id: Qianzhong-Chen/tshirt_reward_yam_only_multi_0804 # 329 dataset, yam only
     # repo_id: Qianzhong-Chen/tshirt_reward_test_0717
     # repo_id: Qianzhong-Chen/tshirt_reward_debug
 
-    # Dense anno
-    repo_id_sparse: Qianzhong-Chen/tshirt_reward_yam_sparse_0815 
+    repo_id: Qianzhong-Chen/tshirt_reward_yam_only_multi_0804 
     repo_id_dense: Qianzhong-Chen/tshirt_reward_hlm_dense_0812
 
     # for test
@@ -70,9 +68,10 @@ cfg:
     dense_annotation: False # check the rule inside the dataset class to allign with progress
 
     # Sparse anno
-    num_classes_sparse: 5 # num_classes = num_stage
+    num_classes_sparse: 6 # num_classes = num_stage
     sparse_annotation_list: [
-            "grab crumpled tshirt and move to center",
+            "grab crumpled tshirt from pile", 
+            "move the tshirt to center",
             "Flatten the tshirt out",
             "Fold the tshirt",
             "Neatly place the folded tshirt to the corner",
