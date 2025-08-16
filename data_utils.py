@@ -41,6 +41,38 @@ def comply_lerobot_batch_multi_stage(batch: dict, camera_names: List[str] = ["to
             result["tasks"] = transposed
 
         return result
+    
+def comply_lerobot_batch_multi_stage_hybird(batch: dict, 
+                                            camera_names: List[str] = ["top_camera-images-rgb"], 
+                                            dense_annotation: bool = False,
+                                            anno_type: str = "sparse") -> dict:
+        """Comply with lerobot dataset batch format."""
+        # convert to diffusion dataset format
+        # this is a hack to make it work with lerobot dataset
+        
+        result =  {
+            "image_frames": {},
+            "targets": batch["targets"],
+            "lengths": batch["lengths"],
+            "tasks": batch["task"],
+            "state": batch["state"],
+            "frame_relative_indices": batch["frame_relative_indices"],
+        }
+        
+        if "anno_type" in batch:
+            result["anno_type"] = batch["anno_type"]
+        else:
+            result["anno_type"] = anno_type
+
+        for cam_name in camera_names:
+            result["image_frames"][cam_name] = batch[cam_name]
+
+        if dense_annotation:
+            transposed = list(map(list, zip(*result["tasks"])))
+            result["tasks"] = transposed
+
+        return result
+
 
 def comply_lerobot_batch_multi_stage_video_eval(batch: dict, camera_names: List[str] = ["top_camera-images-rgb"], dense_annotation: bool = False) -> dict:
         """Comply with lerobot dataset batch format."""
