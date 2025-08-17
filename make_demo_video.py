@@ -155,6 +155,45 @@ def draw_plot_frame_raw_data(step: int, pred, x_offset, width=448, height=448):
 
     return img
 
+def draw_plot_frame_raw_data_hybird(step: int, pred, x_offset, annotation_list, width=448, height=448):
+    fig, ax = plt.subplots(figsize=(width / 100, height / 100), dpi=100)  # ensures final image is 448x448
+
+    timesteps = np.arange(len(pred)) + x_offset
+    ax.plot(timesteps, pred, label='Predicted', linewidth=2)
+    ax.axvline(x=step + x_offset, color='r', linestyle='--', linewidth=2)
+    ax.set_title("Reward Model Prediction")
+    ax.set_xlabel("Time Step")
+    ax.set_ylabel("Reward")
+    ax.legend()
+    ax.grid(True)
+    fig.tight_layout()
+
+    # === Add Milestone Text ===
+    current_pred = float(pred[step])
+    text_y = ax.get_ylim()[1] * 0.9  # position near top
+
+    # Map prediction -> stage index (0..len-1). Out-of-range -> finished.
+    stage_idx = int(np.floor(current_pred))
+    if stage_idx < 0:
+        stage_idx = 0  # clamp negatives to first stage
+
+    if stage_idx >= len(annotation_list):
+        label_text = "Task Finished"
+    else:
+        label_text = annotation_list[stage_idx]
+
+    ax.text(step + x_offset, text_y, label_text,
+            color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+
+    canvas = FigureCanvas(fig)
+    canvas.draw()
+    img = np.frombuffer(canvas.buffer_rgba(), dtype='uint8').copy()
+    img = img.reshape(canvas.get_width_height()[::-1] + (4,))
+    img = img[:, :, :3]  # get RGB
+    plt.close(fig)
+
+    return img
+
 
 def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, episode_num, x_offset=30):
     # === CONFIGURATION ===
@@ -242,6 +281,50 @@ def produce_video_raw_data(save_dir, left_video_path, middle_video_path, right_v
         middle_resized = cv2.resize(frames_middle[t], (target_w, target_h))
         right_resized = cv2.resize(frames_right[t], (target_w, target_h))
         plot_img = draw_plot_frame_raw_data(t, pred, x_offset, height=target_h, width=target_w)
+
+        combined = np.concatenate((left_resized, middle_resized, right_resized, plot_img), axis=1)
+        combined_frames.append(combined)
+
+    # === SAVE VIDEO ===
+    output_clip = ImageSequenceClip(combined_frames, fps=frame_rate)
+    output_clip.write_videofile(str(output_path), codec='libx264')
+    
+def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, right_video_path, episode_num, annotation_list, x_offset=30):
+    # === CONFIGURATION ===
+    save_dir = Path(save_dir)
+    pred_path = save_dir / "pred.npy"
+    output_path = save_dir / "combined_video.mp4"
+    frame_rate = 35
+
+    target_h, target_w = 448, 448  # resolution per panel
+
+    # === LOAD DATA ===
+    pred_full = np.load(pred_path)
+    pred = pred_full[x_offset:]
+    T = len(pred)
+
+    # Load videos
+    clip_left = VideoFileClip(str(left_video_path))
+    clip_middle = VideoFileClip(str(middle_video_path))
+    clip_right = VideoFileClip(str(right_video_path))
+    frames_left = [f for f in clip_left.iter_frames(fps=frame_rate)][x_offset:]
+    frames_middle = [f for f in clip_middle.iter_frames(fps=frame_rate)][x_offset:]
+    frames_right = [f for f in clip_right.iter_frames(fps=frame_rate)][x_offset:]
+    assert len(frames_left) >= T and len(frames_middle) >= T and len(frames_right) >= T, "Video(s) too short"
+    total_len = len(frames_left)
+    indices = np.linspace(0, total_len - 1, T, dtype=int)
+    frames_left = [frames_left[i] for i in indices]
+    frames_right = [frames_right[i] for i in indices]
+    frames_middle = [frames_middle[i] for i in indices]
+
+
+    # === CREATE COMBINED FRAMES ===
+    combined_frames = []
+    for t in range(T):
+        left_resized = cv2.resize(frames_left[t], (target_w, target_h))
+        middle_resized = cv2.resize(frames_middle[t], (target_w, target_h))
+        right_resized = cv2.resize(frames_right[t], (target_w, target_h))
+        plot_img = draw_plot_frame_raw_data_hybird(t, pred, x_offset, height=target_h, width=target_w, annotation_list=annotation_list)
 
         combined = np.concatenate((left_resized, middle_resized, right_resized, plot_img), axis=1)
         combined_frames.append(combined)

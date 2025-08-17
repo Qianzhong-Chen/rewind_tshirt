@@ -11,10 +11,10 @@ cfg:
     # repo_id: Qianzhong-Chen/tshirt_reward_test_0717
     # repo_id: Qianzhong-Chen/tshirt_reward_debug
 
-    repo_id: Qianzhong-Chen/tshirt_reward_yam_only_multi_0804 
+    repo_id_sparse: Qianzhong-Chen/tshirt_reward_yam_only_multi_0804 
     repo_id_dense: Qianzhong-Chen/tshirt_reward_hlm_dense_0812
 
-    # for test
+    # # For test
     # repo_id_sparse: Qianzhong-Chen/tshirt_reward_test_0717
     # repo_id_dense: Qianzhong-Chen/tshirt_reward_hlm_dense_0812
     state_norm_path: "/home/david_chen/rewind_tshirt/assets/fold_tshirt.json"
@@ -111,18 +111,22 @@ cfg:
   eval:
     run_times: 50        # number of rollouts
     video_run_times: 50 # number of episodes to evaluate in video
-    raw_data_run_times: 17
+    raw_data_run_times: 10
+    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-16/08-14-36/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/checkpoints"
+
     
     # # Sparse
-    # ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-05/05-51-36/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints"
+    mode: "sparse"
+    # Eval set
+    # raw_data_dir: "/nfs_old/david_chen/dataset/hlm_tshirt_reward_select"
+    # Train set
+    raw_data_dir: "/nfs_old/dataset/tshirt_reward_yam_only/folding_tshirt"
+    
+    # # Dense
+    # mode: "dense"
+    # # Eval set
     # raw_data_dir: "/nfs_old/dataset/tshirt_reward_yam_only/folding_tshirt"
-    # raw_data_dir: /nfs_old/david_chen/dataset/tshirt_reward_test
-    # raw_data_dir: /nfs_old/david_chen/dataset/tshirt_reward_debug
-
-    # Dense
-    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-13/09-52-35/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_dense_annotation/checkpoints"
-    # raw_data_dir: "/nfs_old/david_chen/dataset/hlm_tshirt/folding_tshirt_pile_and_stacking" # train set
-    # raw_data_dir: "/nfs_old/dataset/tshirt_reward_yam_only/folding_tshirt" # valid set
-    raw_data_dir: "/nfs_old/david_chen/dataset/real_eval/sz_03_0813"
+    # # Train set    
+    # raw_data_dir: "/nfs_old/david_chen/dataset/hlm_tshirt_reward_select"
 
     

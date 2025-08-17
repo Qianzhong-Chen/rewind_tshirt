@@ -16,7 +16,7 @@ from models.hybird_multi_stage_estimate_net import StageTransformer
 from models.text_encoder import FrozenTextEncoder
 from models.vision_encoder import FrozenVisionEncoder
 from models.clip_encoder import FrozenCLIPEncoder
-from make_demo_video import produce_video, produce_video_raw_data
+from make_demo_video import produce_video, produce_video_raw_data_hybird
 import torch.nn as nn
 import cv2
 import numpy as np
@@ -879,8 +879,14 @@ class RewindRewardWorkspace:
 
         # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_035000_loss_0.018.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_035000_loss_0.089.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_035000_loss_0.006.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_035000_loss_0.041.pt"
+        
+        anno_type = cfg.eval.mode
+        if anno_type == "sparse":
+            num_classes = cfg.model.num_classes_sparse
+        else:
+            num_classes = cfg.model.num_classes_dense
 
         # --- reward_model ---
         reward_model = RewardTransformer(d_model=cfg.model.d_model, 
@@ -892,8 +898,6 @@ class RewindRewardWorkspace:
                                   dropout=cfg.model.dropout,
                                   max_seq_len=cfg.model.max_seq_len,
                                   num_cameras=len(self.camera_names),
-                                  num_classes_sparse=cfg.model.num_classes_sparse,
-                                  num_classes_dense=cfg.model.num_classes_dense
                                   ).to(self.device)
         stage_model = StageTransformer(d_model=cfg.model.d_model, 
                                   vis_emb_dim=vis_dim, 
@@ -907,6 +911,7 @@ class RewindRewardWorkspace:
                                   num_classes_sparse=cfg.model.num_classes_sparse,
                                   num_classes_dense=cfg.model.num_classes_dense
                                   ).to(self.device)
+
 
         # Load checkpoints
         reward_ckpt = torch.load(reward_model_path, map_location=self.device)
@@ -997,10 +1002,10 @@ class RewindRewardWorkspace:
 
                 if cfg.model.no_state:
                     state = torch.zeros_like(state, device=self.device)
-                stage_prob = stage_model(img_emb, lang_emb, state, lens).softmax(dim=-1)  # (B, T, num_classes)
+                stage_prob = stage_model(img_emb, lang_emb, state, lens, scheme=cfg.eval.mode).softmax(dim=-1)  # (B, T, num_classes)
                 stage_pred = stage_prob.argmax(dim=-1)  # (B, T)
-                reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
-                pred = torch.clip(reward_pred + stage_pred.float(), 0, cfg.model.num_classes-1)  # (B, T)
+                reward_pred = reward_model(img_emb, lang_emb, state, lens, scheme=cfg.eval.mode)  # (B, T)
+                pred = torch.clip(reward_pred + stage_pred.float(), 0, num_classes-1)  # (B, T)
                 
                 if idx < (cfg.model.n_obs_steps * cfg.model.frame_gap + 100):
                     smoothed_item = pred[0, cfg.model.n_obs_steps].item()
@@ -1030,7 +1035,10 @@ class RewindRewardWorkspace:
             middle_video_path = Path(f"{data_path}/top_camera-images-rgb.mp4")
             right_video_path = Path(f"{data_path}/right_camera-images-rgb.mp4")
             try:
-                produce_video_raw_data(save_dir, left_video_path, middle_video_path, right_video_path, ep_index, x_offset)
+                if anno_type == "sparse":
+                    produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, right_video_path, ep_index, cfg.model.sparse_annotation_list, x_offset)
+                else:
+                    produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, right_video_path, ep_index, cfg.model.sparse_annotation_list, x_offset)
             except Exception as e:
                 print(f"[Eval Video] episode_{ep_index} video production failed: {e}")
             
