@@ -10,13 +10,13 @@ import wandb
 from lerobot.common.datasets.frame_gap_multi_stage_lerobot_dataset import FrameGapLeRobotDataset 
 from data_utils import comply_lerobot_batch_norm, get_valid_episodes, split_train_eval_episodes, comply_lerobot_batch_multi_stage_video_eval
 from train_utils import plot_episode_result, set_seed, save_ckpt, plot_pred_vs_gt, get_normalizer_from_calculated, plot_episode_result, plot_episode_result_raw_data
-from raw_data_utils import get_frame_num, get_frame_data, get_traj_data
+from raw_data_utils import get_frame_num, get_frame_data_fast, get_traj_data
 from models.multi_stage_reward_net import RewardTransformer
 from models.multi_stage_estimate_net import StageTransformer
 from models.text_encoder import FrozenTextEncoder
 from models.vision_encoder import FrozenVisionEncoder
 from models.clip_encoder import FrozenCLIPEncoder
-from make_demo_video import produce_video, produce_video_raw_data
+from make_demo_video import produce_video, produce_video_raw_data_norm
 import torch.nn as nn
 import cv2
 import numpy as np
@@ -411,7 +411,7 @@ class RewindRewardWorkspace:
         txt_dim = 512
 
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_035000_loss_0.089.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_015000_loss_1.124.pt"
 
         # Create model instances
         stage_model = StageTransformer(d_model=cfg.model.d_model, 
@@ -561,7 +561,7 @@ class RewindRewardWorkspace:
         txt_dim = 512
 
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_035000_loss_0.089.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_015000_loss_1.124.pt"
 
         # Create model instances
         stage_model = StageTransformer(d_model=cfg.model.d_model, 
@@ -678,7 +678,6 @@ class RewindRewardWorkspace:
         import random
         cfg = self.cfg
         state_normalizer = get_normalizer_from_calculated(cfg.general.state_norm_path, self.device)
-        
 
         # --- encoders ---
         # # DINO
@@ -695,7 +694,7 @@ class RewindRewardWorkspace:
         txt_dim = 512
 
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_035000_loss_0.089.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_015000_loss_1.124.pt"
 
         # Create model instances
         stage_model = StageTransformer(d_model=cfg.model.d_model, 
@@ -725,7 +724,8 @@ class RewindRewardWorkspace:
         OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
 
         
-        x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
+        # x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
+        x_offset = 0
         data_dir = cfg.eval.raw_data_dir
         run_times = cfg.eval.raw_data_run_times
         # Get all valid episode paths
@@ -751,9 +751,10 @@ class RewindRewardWorkspace:
             ep_index = os.path.basename(data_path)
             frame_num = get_frame_num(data_path)
             traj_joint_data = get_traj_data(data_path)
+            eval_frame_gap = cfg.eval.eval_frame_gap
             print(f"[EVAL_RAW]: process {i+1}/{run_times} episode: {ep_index}")
-            for idx in tqdm(range(frame_num), desc=f"Processing data"):
-                batch = get_frame_data(path=data_path, 
+            for idx in tqdm(range(0, frame_num, eval_frame_gap), desc=f"Processing data"):
+                batch = get_frame_data_fast(path=data_path, 
                                     traj_joint_data=traj_joint_data, 
                                     idx=idx,
                                     n_obs_steps=cfg.model.n_obs_steps,
@@ -799,27 +800,20 @@ class RewindRewardWorkspace:
                 stage_prob = stage_model(img_emb, lang_emb, state, lens).softmax(dim=-1)  # (B, T, num_classes)
                 stage_pred = stage_prob.argmax(dim=-1)  # (B, T)
                 pred = stage_pred.float() / (cfg.model.num_classes - 1)  # (B, T)                
-                if idx < (cfg.model.n_obs_steps * cfg.model.frame_gap + 100):
-                    smoothed_item = pred[0, cfg.model.n_obs_steps].item()
-                elif abs(frame_num - idx) < 100:
-                    smoothed_item = pred[0, cfg.model.n_obs_steps].item()
-                else:
-                    smoothed_item = torch.mean(pred[0, 1:1+cfg.model.n_obs_steps]).item() 
-                smoothed_item = min(max(smoothed_item, pred_ep_result[-1]-0.0125), pred_ep_result[-1] + 0.0125)
-                
                 # if idx < (cfg.model.n_obs_steps * cfg.model.frame_gap + 100):
                 #     smoothed_item = pred[0, cfg.model.n_obs_steps].item()
                 # elif abs(frame_num - idx) < 100:
                 #     smoothed_item = pred[0, cfg.model.n_obs_steps].item()
                 # else:
-                #     smoothed_item = torch.mean(pred[0, 5:1+cfg.model.n_obs_steps]).item() 
-                # smoothed_item = min(max(smoothed_item, pred_ep_result[-1]-0.02), pred_ep_result[-1] + 0.02)
+                #     smoothed_item = torch.mean(pred[0, 1:1+cfg.model.n_obs_steps]).item() 
+                # smoothed_item = min(max(smoothed_item, pred_ep_result[-1]-0.0125), pred_ep_result[-1] + 0.0125)
                 
+                smoothed_item = pred[0, cfg.model.n_obs_steps].item()
                 pred_ep_result.append(smoothed_item)
                 
 
             # save results
-            save_dir = plot_episode_result_raw_data(ep_index, pred_ep_result, x_offset, rollout_save_dir)
+            save_dir = plot_episode_result_raw_data(ep_index, pred_ep_result, x_offset, rollout_save_dir, eval_frame_gap)
             np.save(Path(save_dir) / "pred.npy", np.array(pred_ep_result))
 
             print(f"[Eval Video] episode_{ep_index} making video...")
@@ -827,7 +821,7 @@ class RewindRewardWorkspace:
             middle_video_path = Path(f"{data_path}/top_camera-images-rgb.mp4")
             right_video_path = Path(f"{data_path}/right_camera-images-rgb.mp4")
             try:
-                produce_video_raw_data(save_dir, left_video_path, middle_video_path, right_video_path, ep_index, x_offset)
+                produce_video_raw_data_norm(save_dir, left_video_path, middle_video_path, right_video_path, ep_index, x_offset, eval_frame_gap)
             except Exception as e:
                 print(f"[Eval Video] episode_{ep_index} video production failed: {e}")
             

@@ -151,7 +151,7 @@ def plot_episode_result(ep_index, ep_result, gt_ep_result, x_offset, rollout_sav
 
     return str(save_dir)
 
-def plot_episode_result_raw_data(ep_index, ep_result, x_offset, rollout_save_dir):
+def plot_episode_result_raw_data(ep_index, ep_result, x_offset, rollout_save_dir, frame_gap=None):
     save_dir = rollout_save_dir / f"{ep_index}"
     save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -160,7 +160,10 @@ def plot_episode_result_raw_data(ep_index, ep_result, x_offset, rollout_save_dir
 
     # Convert to numpy arrays
     ep_result_np = np.array(ep_result)
-    timestep = np.arange(len(ep_result_np)) + x_offset
+    if not frame_gap:
+        timestep = np.arange(len(ep_result_np)) + x_offset
+    else:
+        timestep = np.arange(0, len(ep_result_np) * frame_gap, frame_gap) + x_offset
 
    
     # Plot
