@@ -151,32 +151,57 @@ def plot_episode_result(ep_index, ep_result, gt_ep_result, x_offset, rollout_sav
 
     return str(save_dir)
 
-def plot_episode_result_raw_data(ep_index, ep_result, x_offset, rollout_save_dir, frame_gap=None):
+import numpy as np
+import matplotlib.pyplot as plt
+
+def plot_episode_result_raw_data(ep_index, ep_result, x_offset, rollout_save_dir, frame_gap=None, ep_conf=None, ep_smoothed=None):
     save_dir = rollout_save_dir / f"{ep_index}"
     save_dir.mkdir(parents=True, exist_ok=True)
 
-    # Trim initial frames
-    ep_result = ep_result[x_offset:]
+    # === Trim & to numpy ===
+    ep_result_np = np.asarray(ep_result)[x_offset:]  # raw predictions
+    ep_conf_np = np.asarray(ep_conf)[x_offset:] if ep_conf is not None else None
+    ep_smoothed_np = np.asarray(ep_smoothed)[x_offset:] if ep_smoothed is not None else None
 
-    # Convert to numpy arrays
-    ep_result_np = np.array(ep_result)
-    if not frame_gap:
-        timestep = np.arange(len(ep_result_np)) + x_offset
+    # === Handle empty results ===
+    if len(ep_result_np) == 0:
+        print(f"Warning: Episode {ep_index} has no results after trimming. Skipping plot.")
+        return None
+
+    # === Timesteps ===
+    if frame_gap is None:
+        timesteps = np.arange(len(ep_result_np)) + x_offset
     else:
-        timestep = np.arange(0, len(ep_result_np) * frame_gap, frame_gap) + x_offset
+        timesteps = np.arange(0, len(ep_result_np) * frame_gap, frame_gap) + x_offset
 
-   
-    # Plot
-    plt.figure()
-    plt.plot(timestep, ep_result_np, label="Predicted")
-    # Add dummy lines for metrics in the legend
-    plt.title("Episode Result")
-    plt.xlabel("Time Step")
-    plt.ylabel("Prediction")
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    plt.savefig(save_dir / "plot.png")
-    plt.close()
+    # === Plot ===
+    fig, ax = plt.subplots(figsize=(4.48, 4.48), dpi=100)  # 448x448 px
+    line_pred, = ax.plot(timesteps, ep_result_np, label="Raw Predicted", linewidth=2)
+    handles, labels = [line_pred], ["Raw Predicted"]
+
+    if ep_smoothed_np is not None:
+        line_smooth, = ax.plot(timesteps, ep_smoothed_np, label="Smoothed", linewidth=2, color="orange")
+        handles.append(line_smooth)
+        labels.append("Smoothed")
+
+    ax.set_title("Episode Result")
+    ax.set_xlabel("Time Step")
+    ax.set_ylabel("Prediction")
+    ax.grid(True)
+
+    # Confidence on twin y-axis
+    if ep_conf_np is not None:
+        ax2 = ax.twinx()
+        line_conf, = ax2.plot(timesteps, ep_conf_np, linestyle=":", label="Confidence", color="green")
+        ax2.set_ylabel("Confidence")
+        # Merge legends
+        handles.append(line_conf)
+        labels.append("Confidence")
+
+    ax.legend(handles, labels, loc="best")
+    fig.tight_layout()
+    out_path = save_dir / "plot.png"
+    fig.savefig(out_path)
+    plt.close(fig)
 
     return str(save_dir)

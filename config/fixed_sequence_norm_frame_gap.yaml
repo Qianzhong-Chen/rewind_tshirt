@@ -109,13 +109,13 @@ cfg:
   eval:
     run_times: 50        # number of rollouts
     video_run_times: 50 # number of episodes to evaluate in video
-    raw_data_run_times: 20
     eval_frame_gap: 10
+    raw_data_run_times: 17
     
     # Dense
     ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-18/16-55-44/rewind_reward_norm_model_frame_gap_multi_stage/fold_tshirt_sparse_annotation/checkpoints"
     # raw_data_dir: "/nfs_old/david_chen/dataset/hlm_tshirt/folding_tshirt_pile_and_stacking" # valid set 
-    raw_data_dir: "/nfs_old/dataset/tshirt_reward_yam_only/folding_tshirt" # train set
-    # raw_data_dir: "/nfs_old/david_chen/dataset/real_eval/sz_03_0813" # real rollout, 17 trajs
+    # raw_data_dir: "/nfs_old/dataset/tshirt_reward_yam_only/folding_tshirt" # train set
+    raw_data_dir: "/nfs_old/david_chen/dataset/real_eval/sz_03_0813" # real rollout, 17 trajs
 
     

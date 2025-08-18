@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from moviepy.editor import VideoFileClip, ImageSequenceClip
 from pathlib import Path
+import os
 
 
 def draw_plot_frame(step: int, pred, gt, x_offset, width=448, height=448):
@@ -194,35 +195,59 @@ def draw_plot_frame_raw_data_hybird(step: int, pred, x_offset, annotation_list, 
 
     return img
 
-def draw_plot_frame_raw_data_norm(step: int, pred, x_offset, width=448, height=448, frame_gap=None):
+def draw_plot_frame_raw_data_norm(step: int, pred, x_offset, width=448, height=448, frame_gap=None, conf=None, smoothed=None):
     fig, ax = plt.subplots(figsize=(width / 100, height / 100), dpi=100)  # ensures final image is 448x448
 
-    if not frame_gap:
+    # === Timesteps ===
+    if frame_gap is None:
         timesteps = np.arange(len(pred)) + x_offset
     else:
         timesteps = np.arange(0, len(pred) * frame_gap, frame_gap) + x_offset
-    ax.plot(timesteps, pred, label='Predicted', linewidth=2)
-    if not frame_gap:
+
+    # === Plot raw prediction ===
+    line_pred, = ax.plot(timesteps, pred, label='Predicted', linewidth=2)
+    handles, labels = [line_pred], ["Predicted"]
+
+    # === Plot smoothed prediction ===
+    if smoothed is not None:
+        line_smooth, = ax.plot(timesteps, smoothed, label="Smoothed", linewidth=2, color="orange")
+        handles.append(line_smooth)
+        labels.append("Smoothed")
+
+    # === Vertical line at current step ===
+    if frame_gap is None:
         ax.axvline(x=step + x_offset, color='r', linestyle='--', linewidth=2)
     else:
-        ax.axvline(x=step*frame_gap + x_offset, color='r', linestyle='--', linewidth=2)
+        ax.axvline(x=step * frame_gap + x_offset, color='r', linestyle='--', linewidth=2)
+
+    # === Labels and style ===
     ax.set_title("Reward Model Prediction")
     ax.set_xlabel("Time Step")
     ax.set_ylabel("Reward")
-    ax.legend()
     ax.grid(True)
-    fig.tight_layout()
-    
 
+    # === Confidence curve on twin axis ===
+    if conf is not None:
+        ax2 = ax.twinx()
+        line_conf, = ax2.plot(timesteps, conf, linestyle=':', color='green', label="Confidence")
+        ax2.set_ylabel("Confidence")
+        handles.append(line_conf)
+        labels.append("Confidence")
+
+    # === Legend ===
+    ax.legend(handles, labels, loc="best")
+
+    fig.tight_layout()
+
+    # === Render to image ===
     canvas = FigureCanvas(fig)
     canvas.draw()
     img = np.frombuffer(canvas.buffer_rgba(), dtype='uint8').copy()
     img = img.reshape(canvas.get_width_height()[::-1] + (4,))
-    img = img[:, :, :3]  # get RGB
+    img = img[:, :, :3]  # RGB only
     plt.close(fig)
 
     return img
-
 
 def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, episode_num, x_offset=30):
     # === CONFIGURATION ===
@@ -361,16 +386,22 @@ def produce_video_raw_data_norm(save_dir, left_video_path, middle_video_path, ri
     # === CONFIGURATION ===
     save_dir = Path(save_dir)
     pred_path = save_dir / "pred.npy"
+    conf_path = save_dir / "conf.npy"
+    smooth_path = save_dir / "smoothed.npy"
     output_path = save_dir / "combined_video.mp4"
     frame_rate = 30
-    # if frame_gap:
-    #     frame_rate = int(frame_rate/frame_gap)
-
+    
     target_h, target_w = 448, 448  # resolution per panel
 
     # === LOAD DATA ===
     pred_full = np.load(pred_path)
     pred = pred_full[x_offset:]
+    conf = None
+    smoothed = None
+    if os.path.exists(conf_path):
+        conf = np.load(conf_path)[x_offset:]
+    if os.path.exists(smooth_path):
+        smoothed = np.load(smooth_path)[x_offset:]
     T = len(pred)
 
     # Load videos
@@ -383,6 +414,10 @@ def produce_video_raw_data_norm(save_dir, left_video_path, middle_video_path, ri
         print(f"WARNING: Not enough frames in videos. Expected {T}, found {min_frames_num}. Adjusting to available frames.")
         T = min_frames_num
         pred = pred[gap:]
+        if conf is not None:
+            conf = conf[gap:]
+        if smoothed is not None:
+            smoothed = smoothed[gap:]
     total_len = len(frames_middle)
     indices = np.linspace(0, total_len - 1, T, dtype=int)
     frames_middle = [frames_middle[i] for i in indices]
@@ -392,7 +427,7 @@ def produce_video_raw_data_norm(save_dir, left_video_path, middle_video_path, ri
     combined_frames = []
     for t in range(T):
         middle_resized = cv2.resize(frames_middle[t], (target_w, target_h))
-        plot_img = draw_plot_frame_raw_data_norm(t, pred, x_offset, height=target_h, width=target_w, frame_gap=frame_gap)
+        plot_img = draw_plot_frame_raw_data_norm(t, pred, x_offset, height=target_h, width=target_w, frame_gap=frame_gap, conf=conf, smoothed=smoothed)
 
         combined = np.concatenate((middle_resized, plot_img), axis=1)
         combined_frames.append(combined)

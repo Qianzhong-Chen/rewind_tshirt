@@ -17,6 +17,7 @@ from models.text_encoder import FrozenTextEncoder
 from models.vision_encoder import FrozenVisionEncoder
 from models.clip_encoder import FrozenCLIPEncoder
 from make_demo_video import produce_video, produce_video_raw_data_norm
+from pred_smoother import ConfidenceSmoother
 import torch.nn as nn
 import cv2
 import numpy as np
@@ -747,11 +748,14 @@ class RewindRewardWorkspace:
         for i in range(run_times):
             data_path = eval_list[i]
             pred_ep_result = [0]
+            pred_ep_smoothed = [0]
+            pred_ep_conf = [1.0]
             # randomly select 
             ep_index = os.path.basename(data_path)
             frame_num = get_frame_num(data_path)
             traj_joint_data = get_traj_data(data_path)
             eval_frame_gap = cfg.eval.eval_frame_gap
+            smoother = ConfidenceSmoother(cfg.model.num_classes)
             print(f"[EVAL_RAW]: process {i+1}/{run_times} episode: {ep_index}")
             for idx in tqdm(range(0, frame_num, eval_frame_gap), desc=f"Processing data"):
                 batch = get_frame_data_fast(path=data_path, 
@@ -798,23 +802,24 @@ class RewindRewardWorkspace:
                 if cfg.model.no_state:
                     state = torch.zeros_like(state, device=self.device)
                 stage_prob = stage_model(img_emb, lang_emb, state, lens).softmax(dim=-1)  # (B, T, num_classes)
+                
                 stage_pred = stage_prob.argmax(dim=-1)  # (B, T)
-                pred = stage_pred.float() / (cfg.model.num_classes - 1)  # (B, T)                
-                # if idx < (cfg.model.n_obs_steps * cfg.model.frame_gap + 100):
-                #     smoothed_item = pred[0, cfg.model.n_obs_steps].item()
-                # elif abs(frame_num - idx) < 100:
-                #     smoothed_item = pred[0, cfg.model.n_obs_steps].item()
-                # else:
-                #     smoothed_item = torch.mean(pred[0, 1:1+cfg.model.n_obs_steps]).item() 
-                # smoothed_item = min(max(smoothed_item, pred_ep_result[-1]-0.0125), pred_ep_result[-1] + 0.0125)
+                pred = stage_pred.float() / (cfg.model.num_classes - 1)  # (B, T)   
+                # stage_conf = stage_prob.gather(-1, stage_pred.unsqueeze(-1)).squeeze(-1)  # (B, T)
+                raw_item = pred[0, cfg.model.n_obs_steps].item()
+                pred_ep_result.append(raw_item)
+                # pred_ep_conf.append(stage_conf[0, cfg.model.n_obs_steps].item())
                 
-                smoothed_item = pred[0, cfg.model.n_obs_steps].item()
-                pred_ep_result.append(smoothed_item)
+                smoothed_item, conf_t = smoother.update(stage_prob, batch_idx=0, t_idx=cfg.model.n_obs_steps)
+                pred_ep_smoothed.append(smoothed_item)  # smoothed prediction
+                pred_ep_conf.append(conf_t)           # raw confidence
+             
                 
-
             # save results
-            save_dir = plot_episode_result_raw_data(ep_index, pred_ep_result, x_offset, rollout_save_dir, eval_frame_gap)
+            save_dir = plot_episode_result_raw_data(ep_index, pred_ep_result, x_offset, rollout_save_dir, eval_frame_gap, pred_ep_conf, pred_ep_smoothed)
             np.save(Path(save_dir) / "pred.npy", np.array(pred_ep_result))
+            np.save(Path(save_dir) / "conf.npy", np.array(pred_ep_conf))
+            np.save(Path(save_dir) / "smoothed.npy", np.array(pred_ep_smoothed))
 
             print(f"[Eval Video] episode_{ep_index} making video...")
             left_video_path = Path(f"{data_path}/left_camera-images-rgb.mp4")
