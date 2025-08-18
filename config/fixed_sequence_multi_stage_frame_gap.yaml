@@ -64,16 +64,16 @@ cfg:
     no_state: True
     dense_annotation: False # check the rule inside the dataset class to allign with progress
 
-    # Sparse anno
-    num_classes: 6 # num_classes = num_stage + 1
-    annotation_list: [
-            "Grab the tshirt from the pile", 
-            "Move the tshirt to the center of the board",
-            "Flatten the tshirt out",
-            "Fold the tshirt",
-            "Neatly place the folded tshirt to the corner",
-            "task finished"
-    ]
+    # # Sparse anno
+    # num_classes: 6 # num_classes = num_stage + 1
+    # annotation_list: [
+    #         "Grab the tshirt from the pile", 
+    #         "Move the tshirt to the center of the board",
+    #         "Flatten the tshirt out",
+    #         "Fold the tshirt",
+    #         "Neatly place the folded tshirt to the corner",
+    #         "task finished"
+    # ]
 
     # Dense anno
     num_classes: 8 # num_classes = num_stage + 1

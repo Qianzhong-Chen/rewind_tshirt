@@ -3,6 +3,7 @@ import re
 from pathlib import Path
 from typing import List, Union, Tuple
 import random
+import torch
 
 def comply_lerobot_batch(batch: dict, camera_names: List[str] = ["top_camera-images-rgb"]) -> dict:
         """Comply with lerobot dataset batch format."""
@@ -27,6 +28,55 @@ def comply_lerobot_batch_multi_stage(batch: dict, camera_names: List[str] = ["to
         result =  {
             "image_frames": {},
             "targets": batch["targets"],
+            "lengths": batch["lengths"],
+            "tasks": batch["task"],
+            "state": batch["state"],
+            "frame_relative_indices": batch["frame_relative_indices"],
+        }
+
+        for cam_name in camera_names:
+            result["image_frames"][cam_name] = batch[cam_name]
+
+        if dense_annotation:
+            transposed = list(map(list, zip(*result["tasks"])))
+            result["tasks"] = transposed
+
+        return result
+
+def map_targets_piecewise(x: torch.Tensor) -> torch.Tensor:
+    """
+    Piecewise mapping on x in [0,5] with linear stretches:
+      [0,2] -> identity
+      (2,3] -> 2..9
+      (3,4] -> 9..30
+      (4,5] -> 30..32
+    Then normalize to [0,1] by dividing by 32.
+    Works on any shape; differentiable.
+    """
+    x = x.to(torch.float32).clamp_(0.0, 5.0)
+
+    # Segments
+    seg1 = x                                # [0,2] -> 0..2
+    seg2 = 2.0 + (x - 2.0) * 7.0            # (2,3] -> 2..9
+    seg3 = 9.0 + (x - 3.0) * 21.0           # (3,4] -> 9..30
+    seg4 = 30.0 + (x - 4.0) * 2.0           # (4,5] -> 30..32
+
+    # Select by ranges
+    y = torch.where(x <= 2.0, seg1,
+        torch.where(x <= 3.0, seg2,
+            torch.where(x <= 4.0, seg3, seg4)
+        )
+    )
+    return y / 32.0   # normalize to [0,1]
+
+
+def comply_lerobot_batch_norm(batch: dict, camera_names: List[str] = ["top_camera-images-rgb"], dense_annotation: bool = False) -> dict:
+        """Comply with lerobot dataset batch format."""
+        # convert to diffusion dataset format
+        # this is a hack to make it work with lerobot dataset
+        result =  {
+            "image_frames": {},
+            "targets": map_targets_piecewise(batch["targets"]),
             "lengths": batch["lengths"],
             "tasks": batch["task"],
             "state": batch["state"],

@@ -294,7 +294,7 @@ def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, 
     save_dir = Path(save_dir)
     pred_path = save_dir / "pred.npy"
     output_path = save_dir / "combined_video.mp4"
-    frame_rate = 35
+    frame_rate = 32
 
     target_h, target_w = 448, 448  # resolution per panel
 
@@ -310,7 +310,13 @@ def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, 
     frames_left = [f for f in clip_left.iter_frames(fps=frame_rate)][x_offset:]
     frames_middle = [f for f in clip_middle.iter_frames(fps=frame_rate)][x_offset:]
     frames_right = [f for f in clip_right.iter_frames(fps=frame_rate)][x_offset:]
-    assert len(frames_left) >= T and len(frames_middle) >= T and len(frames_right) >= T, "Video(s) too short"
+    min_frames_num = min(len(frames_left), len(frames_middle), len(frames_right))
+    if min_frames_num < T:
+        gap = T - min_frames_num
+        print(f"WARNING: Not enough frames in videos. Expected {T}, found {min_frames_num}. Adjusting to available frames.")
+        T = min_frames_num
+        pred = pred[gap:]
+    # assert len(frames_left) >= T and len(frames_middle) >= T and len(frames_right) >= T, "Video(s) too short"
     total_len = len(frames_left)
     indices = np.linspace(0, total_len - 1, T, dtype=int)
     frames_left = [frames_left[i] for i in indices]
@@ -326,7 +332,8 @@ def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, 
         right_resized = cv2.resize(frames_right[t], (target_w, target_h))
         plot_img = draw_plot_frame_raw_data_hybird(t, pred, x_offset, height=target_h, width=target_w, annotation_list=annotation_list)
 
-        combined = np.concatenate((left_resized, middle_resized, right_resized, plot_img), axis=1)
+        # combined = np.concatenate((left_resized, middle_resized, right_resized, plot_img), axis=1)
+        combined = np.concatenate((middle_resized, plot_img), axis=1)
         combined_frames.append(combined)
 
     # === SAVE VIDEO ===

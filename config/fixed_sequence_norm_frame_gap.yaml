@@ -1,37 +1,34 @@
-_target_: workspace.fixed_sequence_multi_stage_frame_gap_hybird_ws.RewindRewardWorkspace
+_target_: workspace.fixed_sequence_norm_frame_gap_ws.RewindRewardWorkspace
 
 cfg:
   general:
     # dataset specific
-    project_name: "rewind_reward_fixed_seq_model_frame_gap_multi_stage"
-    task_name: "fold_tshirt_hybird"
+    project_name: "rewind_reward_norm_model_frame_gap_multi_stage"
+    task_name: "fold_tshirt_sparse_annotation"
    
+    # Sparse anno
     # repo_id: Qianzhong-Chen/tshirt_reward_anno_0717 # 300 dataset, combine yam and arx
-    # repo_id: Qianzhong-Chen/tshirt_reward_yam_only_multi_0804 # 329 dataset, yam only
+    repo_id: Qianzhong-Chen/tshirt_reward_yam_only_multi_0804 # 329 dataset, yam only
     # repo_id: Qianzhong-Chen/tshirt_reward_test_0717
     # repo_id: Qianzhong-Chen/tshirt_reward_debug
 
-    repo_id_sparse: Qianzhong-Chen/tshirt_reward_yam_only_multi_0804 
-    repo_id_dense: Qianzhong-Chen/tshirt_reward_hlm_dense_0812
-
-    # # For test
-    # repo_id_sparse: Qianzhong-Chen/tshirt_reward_test_0717
-    # repo_id_dense: Qianzhong-Chen/tshirt_reward_hlm_dense_0812
+    # Dense anno
+    # repo_id: Qianzhong-Chen/tshirt_reward_hlm_dense_0812
     state_norm_path: "/home/david_chen/rewind_tshirt/assets/fold_tshirt.json"
     camera_names:  [top_camera-images-rgb]
-    seed: 5
+    seed: 42
     device: "cuda"        # "cpu" for debugging
 
   dataloader:
-    batch_size: 32
-    num_workers: 6 # nproc=32
+    batch_size: 64
+    num_workers: 12 # nproc=32
     shuffle: True
     pin_memory: True
     persistent_workers: True
 
   val_dataloader:
-    batch_size: 32
-    num_workers: 6
+    batch_size: 48
+    num_workers: 12
     shuffle: False
     pin_memory: True
     persistent_workers: True
@@ -62,33 +59,34 @@ cfg:
     horizon: 8
     n_obs_steps: 8
     max_rewind_steps: 4
-    frame_gap: 15
+    frame_gap: 30
     state_dim: 14
     no_state: True
     dense_annotation: False # check the rule inside the dataset class to allign with progress
 
     # Sparse anno
-    num_classes_sparse: 6 # num_classes = num_stage
-    sparse_annotation_list: [
-            "grab crumpled tshirt from pile", 
-            "move the tshirt to center",
+    num_classes: 128 # num_classes = num_stage + 1
+    annotation_list: [
+            "Grab the tshirt from the pile", 
+            "Move the tshirt to the center of the board",
             "Flatten the tshirt out",
             "Fold the tshirt",
             "Neatly place the folded tshirt to the corner",
+            "task finished"
     ]
 
-    # Dense anno
-    num_classes_dense: 9 # num_classes = num_stage
-    dense_annotation_list: [
-        "grab crumpled tshirt and move to center",
-        "flatten out the tshirt",
-        "grab near side and fold one-third",
-        "grab far side and fold into rectangle",
-        "rotate the tshirt 90 degrees",
-        "grab bottom and fold one-third",
-        "grab two-third side and fold into square",
-        "put folded tshirt into corner"
-    ]
+    # # Dense anno
+    # num_classes: 8 # num_classes = num_stage + 1
+    # annotation_list: [
+    #     "grab crumpled tshirt and move to center",
+    #     "flatten out the tshirt",
+    #     "grab near side and fold one-third",
+    #     "grab far side and fold into rectangle",
+    #     "rotate the tshirt 90 degrees",
+    #     "grab bottom and fold one-third",
+    #     "grab two-third side and fold into square",
+    #     "put folded tshirt into corner"
+    # ]
 
   optim:
     lr: 5e-5
@@ -96,10 +94,10 @@ cfg:
     betas: [0.9, 0.95]
     eps: 1.0e-8
     warmup_steps: 1000
-    total_steps: 1000_000
+    total_steps: 100_000
 
   train:
-    num_epochs: 5
+    num_epochs: 4
     grad_clip: 1.0
     log_every: 50        # steps
     eval_every: 1        # epochs
@@ -111,22 +109,18 @@ cfg:
   eval:
     run_times: 50        # number of rollouts
     video_run_times: 50 # number of episodes to evaluate in video
-    raw_data_run_times: 15
-    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-16/08-14-36/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/checkpoints"
-
+    raw_data_run_times: 17
     
     # # Sparse
-    # mode: "sparse"
-    # # Eval set
-    # # raw_data_dir: "/nfs_old/david_chen/dataset/hlm_tshirt_reward_select"
-    # # Train set
+    # ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-05/05-51-36/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt/checkpoints"
     # raw_data_dir: "/nfs_old/dataset/tshirt_reward_yam_only/folding_tshirt"
-    
-    # # Dense
-    mode: "dense"
-    # Eval set
-    # raw_data_dir: "/nfs_old/dataset/tshirt_reward_yam_only/folding_tshirt"
-    # Train set    
-    raw_data_dir: "/nfs_old/david_chen/dataset/hlm_tshirt_reward_select"
+    # raw_data_dir: /nfs_old/david_chen/dataset/tshirt_reward_test
+    # raw_data_dir: /nfs_old/david_chen/dataset/tshirt_reward_debug
+
+    # Dense
+    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-13/09-52-35/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_dense_annotation/checkpoints"
+    # raw_data_dir: "/nfs_old/david_chen/dataset/hlm_tshirt/folding_tshirt_pile_and_stacking" # train set
+    # raw_data_dir: "/nfs_old/dataset/tshirt_reward_yam_only/folding_tshirt" # valid set
+    raw_data_dir: "/nfs_old/david_chen/dataset/real_eval/sz_03_0813"
 
     

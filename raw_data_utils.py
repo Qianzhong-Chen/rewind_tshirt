@@ -109,15 +109,16 @@ def get_frame_data(path,
                    device='cuda:0'):
     
     
-    frames_indices = [0] * (n_obs_steps + 1) # always have the inital frame
-    required_history = n_obs_steps * frame_gap
-    if idx - required_history < 0:
-        idx = required_history
-    if idx < required_history:
-        pass
-    else:
-        frames_indices = [0] + list(reversed([idx - i * frame_gap for i in range(n_obs_steps)]))
+    # frames_indices = [0] * (n_obs_steps + 1) # always have the inital frame
+    # required_history = n_obs_steps * frame_gap
+    # if idx - required_history < 0:
+    #     idx = required_history
+    # if idx < required_history:
+    #     pass
+    # else:
+    #     frames_indices = [0] + list(reversed([idx - i * frame_gap for i in range(n_obs_steps)]))
 
+    frames_indices = get_frames_indices(idx, n_obs_steps, frame_gap)
     sequence_data = {}
 
     joint_data = []
@@ -161,10 +162,32 @@ def get_frame_data(path,
 
     return sequence_data
 
+def get_frames_indices(idx, n_obs_steps, frame_gap):
+    """
+    Generate frame indices for sequence:
+    - Last frame is idx
+    - Previous frames spaced roughly by frame_gap
+    - Fill with zeros if needed
+    """
+    frames = [0] * (n_obs_steps + 1)  # Initialize
+    frames[-1] = idx  # last frame
+
+    for i in range(n_obs_steps-1, 0, -1):
+        next_frame = frames[i+1] - frame_gap
+        frames[i] = max(0, next_frame)
+
+    # Make sure frames are non-decreasing (optional if last 0 should stay)
+    for i in range(1, n_obs_steps):
+        frames[i] = min(frames[i], frames[i+1])
+
+    return frames
+
 
 if __name__ == "__main__":
-    get_frame_num(DATA_PATH)
-    traj_joint_data = get_traj_data(DATA_PATH)
-    sequence_data = get_frame_data(DATA_PATH, traj_joint_data, idx=200)
-    import pdb; pdb.set_trace()
-    print(sequence_data)
+    # get_frame_num(DATA_PATH)
+    # traj_joint_data = get_traj_data(DATA_PATH)
+    # sequence_data = get_frame_data(DATA_PATH, traj_joint_data, idx=200)
+    # import pdb; pdb.set_trace()
+    # print(sequence_data)
+    
+    print(get_frames_indices(13,3,12))
