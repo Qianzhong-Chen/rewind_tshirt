@@ -1,4 +1,4 @@
-_target_: workspace.fixed_sequence_norm_frame_gap_ws.RewindRewardWorkspace
+_target_: workspace.fixed_sequence_norm_soft_frame_gap_ws.RewindRewardWorkspace
 
 cfg:
   general:
@@ -59,10 +59,12 @@ cfg:
     horizon: 8
     n_obs_steps: 8
     max_rewind_steps: 4
-    frame_gap: 30
+    frame_gap: 10
     state_dim: 14
     no_state: True
     dense_annotation: False # check the rule inside the dataset class to allign with progress
+    unimodal_lambda: 1e-3
+    ordinal_sigma: 1.0
 
     # Sparse anno
     num_classes: 128 # num_classes = num_stage + 1

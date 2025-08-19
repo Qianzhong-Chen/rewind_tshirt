@@ -1,6 +1,40 @@
 import torch
 import torch.nn as nn
 
+# Fusion MLP with residual
+class FusionNet(nn.Module):
+    def __init__(self, d_model: int, num_cameras: int, num_classes: int, dropout: float = 0.1):
+        super().__init__()
+        C = d_model * (num_cameras + 2)
+
+        self.norm = nn.LayerNorm(C)
+        self.proj_in = nn.Linear(C, d_model)
+        self.proj_mid = nn.Linear(d_model, d_model)
+        self.proj_out = nn.Linear(d_model, num_classes)
+        self.act = nn.GELU()
+        self.drop = nn.Dropout(dropout)
+
+        # shortcut path to match dim → d_model
+        self.shortcut = nn.Linear(C, d_model)
+
+    def forward(self, x):
+        # x: (B, T, C)
+        h = self.norm(x)
+
+        # residual block
+        residual = self.shortcut(h)                # (B, T, d_model)
+        h = self.proj_in(h)                        # (B, T, d_model)
+        h = self.act(h)
+        h = self.drop(h)
+        h = self.proj_mid(h)                       # (B, T, d_model)
+        h = self.drop(h)
+        h = h + residual                           # add skip connection
+
+        # final classification
+        h = self.act(h)
+        out = self.proj_out(h)                     # (B, T, num_classes)
+        return out
+
 
 class StageTransformer(nn.Module):
     def __init__(self,
@@ -34,13 +68,7 @@ class StageTransformer(nn.Module):
         self.first_pos = nn.Parameter(torch.zeros(1, d_model))
 
         # Fusion MLP
-        self.fusion_net = nn.Sequential(
-            nn.LayerNorm(d_model * (num_cameras + 2)),
-            nn.Linear(d_model * (num_cameras + 2), d_model),
-            nn.ReLU(),
-            nn.Linear(d_model, num_classes)
-        )
-        # self.fusion_net = FusionNet(d_model, num_cameras, num_classes, dropout)
+        self.fusion_net = FusionNet(d_model, num_cameras, num_classes, dropout)
 
 
     def forward(self,
