@@ -15,12 +15,12 @@ cfg:
     # Dense anno
     # repo_id: Qianzhong-Chen/tshirt_reward_hlm_dense_0812
     state_norm_path: "/home/david_chen/rewind_tshirt/assets/fold_tshirt.json"
-    camera_names:  [left_camera-images-rgb, right_camera-images-rgb, top_camera-images-rgb]
+    camera_names:  [top_camera-images-rgb]
     seed: 42
     device: "cuda"        # "cpu" for debugging
 
   dataloader:
-    batch_size: 48
+    batch_size: 64
     num_workers: 12 # nproc=32
     shuffle: True
     pin_memory: True
@@ -58,8 +58,8 @@ cfg:
     dropout: 0.1
     horizon: 8
     n_obs_steps: 8
-    max_rewind_steps: 4
-    frame_gap: 10
+    max_rewind_steps: 6
+    frame_gap: 30
     state_dim: 14
     no_state: True
     dense_annotation: False # check the rule inside the dataset class to allign with progress
@@ -67,7 +67,7 @@ cfg:
     ordinal_sigma: 1.0
 
     # Sparse anno
-    num_classes: 128 # num_classes = num_stage + 1
+    num_classes: 64 # num_classes = num_stage + 1
     annotation_list: [
             "Grab the tshirt from the pile", 
             "Move the tshirt to the center of the board",

@@ -412,7 +412,7 @@ class RewindRewardWorkspace:
         txt_dim = 512
 
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_015000_loss_1.124.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_010000_loss_1.341.pt"
 
         # Create model instances
         stage_model = StageTransformer(d_model=cfg.model.d_model, 
@@ -562,7 +562,7 @@ class RewindRewardWorkspace:
         txt_dim = 512
 
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_015000_loss_1.124.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_010000_loss_1.341.pt"
 
         # Create model instances
         stage_model = StageTransformer(d_model=cfg.model.d_model, 
@@ -695,7 +695,7 @@ class RewindRewardWorkspace:
         txt_dim = 512
 
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_015000_loss_1.124.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_010000_loss_1.341.pt"
 
         # Create model instances
         stage_model = StageTransformer(d_model=cfg.model.d_model, 
