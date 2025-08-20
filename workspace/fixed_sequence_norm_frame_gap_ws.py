@@ -747,9 +747,12 @@ class RewindRewardWorkspace:
 
         for i in range(run_times):
             data_path = eval_list[i]
-            pred_ep_result = [0]
-            pred_ep_smoothed = [0]
-            pred_ep_conf = [1.0]
+            # pred_ep_result = [0]
+            # pred_ep_smoothed = [0]
+            # pred_ep_conf = [1.0]
+            pred_ep_result = []
+            pred_ep_smoothed = []
+            pred_ep_conf = []
             # randomly select 
             ep_index = os.path.basename(data_path)
             frame_num = get_frame_num(data_path)

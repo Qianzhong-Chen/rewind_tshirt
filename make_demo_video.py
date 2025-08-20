@@ -156,35 +156,66 @@ def draw_plot_frame_raw_data(step: int, pred, x_offset, width=448, height=448):
 
     return img
 
-def draw_plot_frame_raw_data_hybird(step: int, pred, x_offset, annotation_list, width=448, height=448):
+def draw_plot_frame_raw_data_hybird(step: int, pred, x_offset, annotation_list, width=448, height=448, frame_gap=None, conf=None, smoothed=None):
     fig, ax = plt.subplots(figsize=(width / 100, height / 100), dpi=100)  # ensures final image is 448x448
 
-    timesteps = np.arange(len(pred)) + x_offset
-    ax.plot(timesteps, pred, label='Predicted', linewidth=2)
-    ax.axvline(x=step + x_offset, color='r', linestyle='--', linewidth=2)
+    if frame_gap is None:
+        timesteps = np.arange(len(pred)) + x_offset
+    else:
+        timesteps = np.arange(0, len(pred) * frame_gap, frame_gap) + x_offset
+        
+    # === Plot raw prediction ===
+    line_pred, = ax.plot(timesteps, pred, label='Predicted', linewidth=2)
+    handles, labels = [line_pred], ["Predicted"]
+
+    # === Plot smoothed prediction ===
+    if smoothed is not None:
+        line_smooth, = ax.plot(timesteps, smoothed, label="Smoothed", linewidth=2, color="orange")
+        handles.append(line_smooth)
+        labels.append("Smoothed")
+
+    # === Vertical line at current step ===
+    if frame_gap is None:
+        ax.axvline(x=step + x_offset, color='r', linestyle='--', linewidth=2)
+    else:
+        ax.axvline(x=step * frame_gap + x_offset, color='r', linestyle='--', linewidth=2)
+
+    # === Labels and style ===
     ax.set_title("Reward Model Prediction")
     ax.set_xlabel("Time Step")
     ax.set_ylabel("Reward")
-    ax.legend()
     ax.grid(True)
+
+    # === Confidence curve on twin axis ===
+    if conf is not None:
+        ax2 = ax.twinx()
+        # line_conf, = ax2.plot(timesteps, conf, linestyle=':', color='green', label="Confidence")
+        line_conf = ax2.scatter(timesteps, conf, color="green", marker=".", s=60, label="Confidence")
+        ax2.set_ylabel("Confidence")
+        handles.append(line_conf)
+        labels.append("Confidence")
+
+    # # === Add Milestone Text ===
+    # current_pred = float(pred[step])
+    # text_y = ax.get_ylim()[1] * 0.9  # position near top
+
+    # # Map prediction -> stage index (0..len-1). Out-of-range -> finished.
+    # stage_idx = int(np.floor(current_pred))
+    # if stage_idx < 0:
+    #     stage_idx = 0  # clamp negatives to first stage
+
+    # if stage_idx >= len(annotation_list):
+    #     label_text = "Task Finished"
+    # else:
+    #     label_text = annotation_list[stage_idx]
+
+    # ax.text(step + x_offset, text_y, label_text,
+    #         color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+
+    # === Legend ===
+    ax.legend(handles, labels, loc="best")
+
     fig.tight_layout()
-
-    # === Add Milestone Text ===
-    current_pred = float(pred[step])
-    text_y = ax.get_ylim()[1] * 0.9  # position near top
-
-    # Map prediction -> stage index (0..len-1). Out-of-range -> finished.
-    stage_idx = int(np.floor(current_pred))
-    if stage_idx < 0:
-        stage_idx = 0  # clamp negatives to first stage
-
-    if stage_idx >= len(annotation_list):
-        label_text = "Task Finished"
-    else:
-        label_text = annotation_list[stage_idx]
-
-    ax.text(step + x_offset, text_y, label_text,
-            color='green', fontsize=12, fontweight='bold', ha='center', va='top')
 
     canvas = FigureCanvas(fig)
     canvas.draw()
@@ -341,23 +372,34 @@ def produce_video_raw_data(save_dir, left_video_path, middle_video_path, right_v
     output_clip = ImageSequenceClip(combined_frames, fps=frame_rate)
     output_clip.write_videofile(str(output_path), codec='libx264')
     
-def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, right_video_path, episode_num, annotation_list, x_offset=30):
+def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, right_video_path, episode_num, annotation_list, x_offset=30, frame_gap=None):
     # === CONFIGURATION ===
     save_dir = Path(save_dir)
     pred_path = save_dir / "pred.npy"
+    conf_path = save_dir / "conf.npy"
+    smooth_path = save_dir / "smoothed.npy"
     output_path = save_dir / "combined_video.mp4"
-    frame_rate = 32
+    frame_rate = 30
 
     target_h, target_w = 448, 448  # resolution per panel
 
     # === LOAD DATA ===
     pred_full = np.load(pred_path)
     pred = pred_full[x_offset:]
+    conf = None
+    smoothed = None
+    if os.path.exists(conf_path):
+        conf = np.load(conf_path)[x_offset:]
+    if os.path.exists(smooth_path):
+        smoothed = np.load(smooth_path)[x_offset:]
     T = len(pred)
 
     # Load videos
     clip_middle = VideoFileClip(str(middle_video_path))
-    frames_middle = [f for f in clip_middle.iter_frames(fps=frame_rate)][x_offset:]
+    if frame_gap is not None:
+        frames_middle = [f for f in clip_middle.iter_frames(fps=frame_rate)][x_offset*frame_gap:]
+    else:
+        frames_middle = [f for f in clip_middle.iter_frames(fps=frame_rate)][x_offset:]
     min_frames_num = len(frames_middle)
     if min_frames_num < T:
         gap = T - min_frames_num
@@ -373,7 +415,7 @@ def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, 
     combined_frames = []
     for t in range(T):
         middle_resized = cv2.resize(frames_middle[t], (target_w, target_h))
-        plot_img = draw_plot_frame_raw_data_hybird(t, pred, x_offset, height=target_h, width=target_w, annotation_list=annotation_list)
+        plot_img = draw_plot_frame_raw_data_hybird(t, pred, x_offset, height=target_h, width=target_w, annotation_list=annotation_list, frame_gap=frame_gap, conf=conf, smoothed=smoothed)
 
         combined = np.concatenate((middle_resized, plot_img), axis=1)
         combined_frames.append(combined)
