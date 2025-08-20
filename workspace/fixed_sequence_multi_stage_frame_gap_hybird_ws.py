@@ -897,8 +897,8 @@ class RewindRewardWorkspace:
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
         # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_085000_loss_0.005.pt"
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_085000_loss_0.006.pt"
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_090000_loss_0.002.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_090000_loss_0.004.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_080000_loss_0.004.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_080000_loss_0.011.pt"
         
         anno_type = cfg.eval.mode
         if anno_type == "sparse":
@@ -950,7 +950,7 @@ class RewindRewardWorkspace:
 
         
         # x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
-        x_offset = 9
+        x_offset = 18
         data_dir = cfg.eval.raw_data_dir
         run_times = cfg.eval.raw_data_run_times
         # Get all valid episode paths
@@ -1046,7 +1046,7 @@ class RewindRewardWorkspace:
                 pred_ep_smoothed.append(smoothed_item)
 
             # save results
-            save_dir = plot_episode_result_raw_data(ep_index, pred_ep_result, x_offset, rollout_save_dir)
+            save_dir = plot_episode_result_raw_data(ep_index, pred_ep_result, x_offset, rollout_save_dir, eval_frame_gap, pred_ep_conf, pred_ep_smoothed)
             np.save(Path(save_dir) / "pred.npy", np.array(pred_ep_result))
             np.save(Path(save_dir) / "conf.npy", np.array(pred_ep_conf))
             np.save(Path(save_dir) / "smoothed.npy", np.array(pred_ep_smoothed))

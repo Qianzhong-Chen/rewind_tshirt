@@ -695,8 +695,14 @@ class RewindRewardWorkspace:
         txt_dim = 512
 
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
+<<<<<<< Updated upstream
         stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_010000_loss_1.341.pt"
 
+=======
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_015000_loss_1.124.pt" 
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_020000_loss_1.320.pt"
+        
+>>>>>>> Stashed changes
         # Create model instances
         stage_model = StageTransformer(d_model=cfg.model.d_model, 
                                   vis_emb_dim=vis_dim, 
@@ -726,7 +732,7 @@ class RewindRewardWorkspace:
 
         
         # x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
-        x_offset = 0
+        x_offset = 18
         data_dir = cfg.eval.raw_data_dir
         run_times = cfg.eval.raw_data_run_times
         # Get all valid episode paths
@@ -813,7 +819,13 @@ class RewindRewardWorkspace:
                 pred_ep_result.append(raw_item)
                 # pred_ep_conf.append(stage_conf[0, cfg.model.n_obs_steps].item())
                 
-                smoothed_item, conf_t = smoother.update(stage_prob, batch_idx=0, t_idx=cfg.model.n_obs_steps)
+                if idx >= (x_offset * eval_frame_gap):
+                    smoothed_item, conf_t = smoother.update(stage_prob, batch_idx=0, t_idx=cfg.model.n_obs_steps)
+                else:
+                    smoothed_item = raw_item
+                    stage_conf = stage_prob.gather(-1, stage_pred.unsqueeze(-1)).squeeze(-1)
+                    conf_t = stage_conf[0, cfg.model.n_obs_steps].item()
+                
                 pred_ep_smoothed.append(smoothed_item)  # smoothed prediction
                 pred_ep_conf.append(conf_t)           # raw confidence
              

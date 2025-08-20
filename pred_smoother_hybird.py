@@ -4,10 +4,10 @@ from typing import Optional, Tuple
 class RegressionConfidenceSmoother:
     def __init__(
         self,
-        window_size: int = 12,
-        beta: float = 1.2,
+        window_size: int = 25,
+        beta: float = 3.0,
         eps: float = 1e-6,
-        low_conf_th: float = 0.85,
+        low_conf_th: float = 0.9,
         value_range: Optional[Tuple[float, float]] = None,  # e.g., (min_val, max_val)
     ):
         """

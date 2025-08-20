@@ -162,23 +162,24 @@ def draw_plot_frame_raw_data_hybird(step: int, pred, x_offset, annotation_list, 
     if frame_gap is None:
         timesteps = np.arange(len(pred)) + x_offset
     else:
-        timesteps = np.arange(0, len(pred) * frame_gap, frame_gap) + x_offset
+        timesteps = np.arange(0, len(pred) * frame_gap, frame_gap) + x_offset * frame_gap
         
     # === Plot raw prediction ===
+    pred = smoothed if smoothed is not None else pred
     line_pred, = ax.plot(timesteps, pred, label='Predicted', linewidth=2)
     handles, labels = [line_pred], ["Predicted"]
 
-    # === Plot smoothed prediction ===
-    if smoothed is not None:
-        line_smooth, = ax.plot(timesteps, smoothed, label="Smoothed", linewidth=2, color="orange")
-        handles.append(line_smooth)
-        labels.append("Smoothed")
+    # # === Plot smoothed prediction ===
+    # if smoothed is not None:
+    #     line_smooth, = ax.plot(timesteps, smoothed, label="Smoothed", linewidth=2, color="orange")
+    #     handles.append(line_smooth)
+    #     labels.append("Smoothed")
 
     # === Vertical line at current step ===
     if frame_gap is None:
         ax.axvline(x=step + x_offset, color='r', linestyle='--', linewidth=2)
     else:
-        ax.axvline(x=step * frame_gap + x_offset, color='r', linestyle='--', linewidth=2)
+        ax.axvline(x=step * frame_gap + x_offset * frame_gap, color='r', linestyle='--', linewidth=2)
 
     # === Labels and style ===
     ax.set_title("Reward Model Prediction")
@@ -186,14 +187,14 @@ def draw_plot_frame_raw_data_hybird(step: int, pred, x_offset, annotation_list, 
     ax.set_ylabel("Reward")
     ax.grid(True)
 
-    # === Confidence curve on twin axis ===
-    if conf is not None:
-        ax2 = ax.twinx()
-        # line_conf, = ax2.plot(timesteps, conf, linestyle=':', color='green', label="Confidence")
-        line_conf = ax2.scatter(timesteps, conf, color="green", marker=".", s=60, label="Confidence")
-        ax2.set_ylabel("Confidence")
-        handles.append(line_conf)
-        labels.append("Confidence")
+    # # === Confidence curve on twin axis ===
+    # if conf is not None:
+    #     ax2 = ax.twinx()
+    #     # line_conf, = ax2.plot(timesteps, conf, linestyle=':', color='green', label="Confidence")
+    #     line_conf = ax2.scatter(timesteps, conf, color="green", marker=".", s=60, label="Confidence")
+    #     ax2.set_ylabel("Confidence")
+    #     handles.append(line_conf)
+    #     labels.append("Confidence")
 
     # # === Add Milestone Text ===
     # current_pred = float(pred[step])
@@ -233,23 +234,24 @@ def draw_plot_frame_raw_data_norm(step: int, pred, x_offset, width=448, height=4
     if frame_gap is None:
         timesteps = np.arange(len(pred)) + x_offset
     else:
-        timesteps = np.arange(0, len(pred) * frame_gap, frame_gap) + x_offset
+        timesteps = np.arange(0, len(pred) * frame_gap, frame_gap) + x_offset * frame_gap
 
     # === Plot raw prediction ===
+    pred = smoothed if smoothed is not None else pred
     line_pred, = ax.plot(timesteps, pred, label='Predicted', linewidth=2)
     handles, labels = [line_pred], ["Predicted"]
 
-    # === Plot smoothed prediction ===
-    if smoothed is not None:
-        line_smooth, = ax.plot(timesteps, smoothed, label="Smoothed", linewidth=2, color="orange")
-        handles.append(line_smooth)
-        labels.append("Smoothed")
+    # # === Plot smoothed prediction ===
+    # if smoothed is not None:
+    #     line_smooth, = ax.plot(timesteps, smoothed, label="Smoothed", linewidth=2, color="orange")
+    #     handles.append(line_smooth)
+    #     labels.append("Smoothed")
 
     # === Vertical line at current step ===
     if frame_gap is None:
         ax.axvline(x=step + x_offset, color='r', linestyle='--', linewidth=2)
     else:
-        ax.axvline(x=step * frame_gap + x_offset, color='r', linestyle='--', linewidth=2)
+        ax.axvline(x=step * frame_gap + x_offset * frame_gap, color='r', linestyle='--', linewidth=2)
 
     # === Labels and style ===
     ax.set_title("Reward Model Prediction")
@@ -257,13 +259,13 @@ def draw_plot_frame_raw_data_norm(step: int, pred, x_offset, width=448, height=4
     ax.set_ylabel("Reward")
     ax.grid(True)
 
-    # === Confidence curve on twin axis ===
-    if conf is not None:
-        ax2 = ax.twinx()
-        line_conf, = ax2.plot(timesteps, conf, linestyle=':', color='green', label="Confidence")
-        ax2.set_ylabel("Confidence")
-        handles.append(line_conf)
-        labels.append("Confidence")
+    # # === Confidence curve on twin axis ===
+    # if conf is not None:
+    #     ax2 = ax.twinx()
+    #     line_conf, = ax2.plot(timesteps, conf, linestyle=':', color='green', label="Confidence")
+    #     ax2.set_ylabel("Confidence")
+    #     handles.append(line_conf)
+    #     labels.append("Confidence")
 
     # === Legend ===
     ax.legend(handles, labels, loc="best")
@@ -449,7 +451,10 @@ def produce_video_raw_data_norm(save_dir, left_video_path, middle_video_path, ri
     # Load videos
     clip_middle = VideoFileClip(str(middle_video_path))
     
-    frames_middle = [f for f in clip_middle.iter_frames(fps=frame_rate)][x_offset:]
+    if frame_gap is not None:
+        frames_middle = [f for f in clip_middle.iter_frames(fps=frame_rate)][x_offset*frame_gap:]
+    else:
+        frames_middle = [f for f in clip_middle.iter_frames(fps=frame_rate)][x_offset:]
     min_frames_num = len(frames_middle)
     if min_frames_num < T:
         gap = T - min_frames_num

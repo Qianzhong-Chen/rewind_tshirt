@@ -172,7 +172,7 @@ def plot_episode_result_raw_data(ep_index, ep_result, x_offset, rollout_save_dir
     if frame_gap is None:
         timesteps = np.arange(len(ep_result_np)) + x_offset
     else:
-        timesteps = np.arange(0, len(ep_result_np) * frame_gap, frame_gap) + x_offset
+        timesteps = np.arange(0, len(ep_result_np) * frame_gap, frame_gap) + x_offset * frame_gap
 
     # === Plot ===
     fig, ax = plt.subplots(figsize=(4.48, 4.48), dpi=100)  # 448x448 px
