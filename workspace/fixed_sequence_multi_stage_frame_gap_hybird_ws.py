@@ -10,7 +10,7 @@ import wandb
 from lerobot.common.datasets.frame_gap_multi_stage_lerobot_dataset import FrameGapLeRobotDataset 
 from data_utils import comply_lerobot_batch_multi_stage, get_valid_episodes, split_train_eval_episodes, comply_lerobot_batch_multi_stage_video_eval
 from train_utils import plot_episode_result, set_seed, save_ckpt, plot_pred_vs_gt, get_normalizer_from_calculated, plot_episode_result, plot_episode_result_raw_data
-from raw_data_utils import get_frame_num, get_frame_data_fast, get_traj_data
+from raw_data_utils import get_frame_num, get_frame_data_fast, get_traj_data, normalize_sparse
 from models.hybird_multi_stage_reward_net import RewardTransformer
 from models.hybird_multi_stage_estimate_net import StageTransformer
 from models.text_encoder import FrozenTextEncoder
@@ -33,20 +33,6 @@ def infinite_loader(dl):
     while True:
         for b in dl:
             yield b
-            
-def normalize_sparse(x: float) -> float:
-    if 0 <= x < 1:
-        return 0.0 + (x - 0) / (1 - 0) * (0.05 - 0.0)
-    elif 1 <= x < 2:
-        return 0.05 + (x - 1) / (2 - 1) * (0.1 - 0.05)
-    elif 2 <= x < 3:
-        return 0.1 + (x - 2) / (3 - 2) * (0.3 - 0.1)
-    elif 3 <= x < 4:
-        return 0.3 + (x - 3) / (4 - 3) * (0.9 - 0.3)
-    elif 4 <= x <= 5:
-        return 0.9 + (x - 4) / (5 - 4) * (1.0 - 0.9)
-    else:
-        raise ValueError("x must be in range [0, 5]")
 
             
 class RewindRewardWorkspace:

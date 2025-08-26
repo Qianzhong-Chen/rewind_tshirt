@@ -42,6 +42,59 @@ def comply_lerobot_batch_multi_stage(batch: dict, camera_names: List[str] = ["to
             result["tasks"] = transposed
 
         return result
+    
+def comply_lerobot_batch_regression(batch: dict, camera_names: List[str] = ["top_camera-images-rgb"], dense_annotation: bool = False) -> dict:
+        """Comply with lerobot dataset batch format."""
+        # convert to diffusion dataset format
+        # this is a hack to make it work with lerobot dataset
+        result =  {
+            "image_frames": {},
+            "targets": normalize_sparse_tensor(batch["targets"]),
+            "lengths": batch["lengths"],
+            "tasks": batch["task"],
+            "state": batch["state"],
+            "frame_relative_indices": batch["frame_relative_indices"],
+        }
+
+        for cam_name in camera_names:
+            result["image_frames"][cam_name] = batch[cam_name]
+
+        if dense_annotation:
+            transposed = list(map(list, zip(*result["tasks"])))
+            result["tasks"] = transposed
+
+        return result
+
+
+def normalize_sparse_tensor(x: torch.Tensor) -> torch.Tensor:
+    """
+    Piecewise normalization for tensor values in [0, 5].
+    Input: x of shape (B, T)
+    Output: normalized tensor of shape (B, T)
+    """
+    if not torch.is_tensor(x):
+        raise TypeError("Input must be a torch.Tensor")
+    if not torch.all((0 <= x) & (x <= 5)):
+        raise ValueError("All elements in x must be within [0, 5]")
+
+    out = torch.empty_like(x, dtype=torch.float32)
+
+    # Define masks for each interval
+    m0 = (0 <= x) & (x < 1)
+    m1 = (1 <= x) & (x < 2)
+    m2 = (2 <= x) & (x < 3)
+    m3 = (3 <= x) & (x < 4)
+    m4 = (4 <= x) & (x <= 5)
+
+    # Apply linear mappings
+    out[m0] = 0.0 + (x[m0] - 0) / (1 - 0) * (0.05 - 0.0)
+    out[m1] = 0.05 + (x[m1] - 1) / (2 - 1) * (0.1 - 0.05)
+    out[m2] = 0.1 + (x[m2] - 2) / (3 - 2) * (0.3 - 0.1)
+    out[m3] = 0.3 + (x[m3] - 3) / (4 - 3) * (0.9 - 0.3)
+    out[m4] = 0.9 + (x[m4] - 4) / (5 - 4) * (1.0 - 0.9)
+
+    return out
+
 
 def map_targets_piecewise(x: torch.Tensor) -> torch.Tensor:
     """
