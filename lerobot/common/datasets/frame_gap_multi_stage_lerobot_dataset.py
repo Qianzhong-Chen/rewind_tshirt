@@ -95,7 +95,7 @@ class FrameGapLeRobotDataset(LeRobotDataset):
         query_ts_dict = {key: obs_ts_range for key in self.wrapped_video_keys}
         video_frames = self._query_videos(query_ts_dict, ep_idx)
         
-        if not self.video_eval:
+        if not self.video_eval and self.max_rewind_steps > 0:
             rewind_flag = torch.rand(1).item() < 0.8 and idx > ep_start + required_history
         else:
             rewind_flag = False

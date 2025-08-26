@@ -1,10 +1,10 @@
-_target_: workspace.fixed_sequence_regression_frame_gap_ws.RewindRewardWorkspace
+_target_: workspace.fixed_sequence_vlc_frame_gap_ws.RewindRewardWorkspace
 
 cfg:
   general:
     # dataset specific
     project_name: "rewind_reward_fixed_seq_model_frame_gap_multi_stage"
-    task_name: "fold_tshirt_regression_sparse"
+    task_name: "fold_tshirt_vlc_sparse"
    
     repo_id: Qianzhong-Chen/tshirt_reward_yam_only_multi_0804 
     state_norm_path: "/home/david_chen/rewind_tshirt/assets/fold_tshirt.json"
@@ -46,13 +46,13 @@ cfg:
     dropout: 0.1
     horizon: 8
     n_obs_steps: 8
-    max_rewind_steps: 4
+    max_rewind_steps: 0
     frame_gap: 30
     state_dim: 14
     no_state: True
     dense_annotation: False # check the rule inside the dataset class to allign with progress
     resume_training: True
-    model_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-26/09-59-56/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_regression_sparse/checkpoints/reward_step_040000_loss_0.007.pt"
+    model_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-26/15-55-35/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_vlc_sparse/checkpoints/reward_step_040000_loss_0.000.pt"
 
     # Sparse anno
     num_classes: 6 # num_classes = num_stage

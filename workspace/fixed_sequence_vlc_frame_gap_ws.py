@@ -24,6 +24,73 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["WANDB_IGNORE_GLOBS"] = "**/rollout/**"
 # os.environ["WANDB_MODE"] = "disabled"
 
+def vlc_loss(
+    reward_seq: torch.Tensor,   # (B, T)
+    lens: torch.Tensor,         # (B,), valid lengths (<= T)
+    *,
+    alpha: float = 1.0,         # weight on monotonic-ranking (set as you like)
+    shift_to_zero: bool = False, # subtract r[:,0] so each episode starts at 0
+    tv_beta: float = 0.0,       # optional smoothness weight (0 = off)
+    margin: float = 0.0,        # optional desired minimum per-step increase
+):
+    """
+    Row-independent loss (no cross-batch contrastive).
+    Enforces monotonic increase within each sequence using a hinge on decreases.
+
+    L = alpha * sum_t max( (r_t - r_{t+1}) + margin, 0 ) + tv_beta * smoothness
+
+    Args:
+        reward_seq: predicted rewards per (video, caption) pair up to each step, shape (B, T).
+        lens:       valid lengths per sequence (<= T), shape (B,).
+        alpha:      weight for the ranking term.
+        shift_to_zero: if True, shift per-row so reward at t=0 is 0 (stabilizes scales).
+        tv_beta:    weight on optional total-variation smoothness (second difference).
+        margin:     non-negative margin; margin>0 encourages strictly increasing by `margin`.
+
+    Returns:
+        total_loss: scalar
+        logs: dict of detached components
+    """
+    device = reward_seq.device
+    B, T = reward_seq.shape
+
+    r = reward_seq
+    if shift_to_zero:
+        r = r - r[:, :1]  # (B, T), subtract first step
+
+    if T <= 1:
+        # nothing to rank
+        ranking = torch.zeros((), device=device)
+        tv_loss = torch.zeros((), device=device)
+        total = alpha * ranking + tv_beta * tv_loss
+        return total, {"ranking": ranking.detach(), "tv": tv_loss.detach()}
+
+    # --- valid mask for (t -> t+1) transitions ---
+    # valid if t < lens[i]-1
+    idx = torch.arange(T - 1, device=device).unsqueeze(0)           # (1, T-1)
+    valid = idx < (lens.view(-1, 1) - 1).clamp_min(0)               # (B, T-1)
+
+    # --- monotonic ranking: penalize decreases (and shortfalls vs margin) ---
+    # dec = (r_t - r_{t+1}) + margin  -> penalize positive part
+    dec = r[:, :-1] - r[:, 1:] + margin                              # (B, T-1)
+    rank_term = F.relu(dec)                                          # hinge
+    # average over valid transitions only
+    denom = valid.sum().clamp_min(1)
+    ranking = (rank_term * valid).sum() / denom
+
+    # --- optional smoothness (2nd-order total variation) ---
+    if tv_beta > 0.0 and T >= 3:
+        # r_{t+1} - 2 r_t + r_{t-1}
+        second_diff = r[:, 2:] - 2 * r[:, 1:-1] + r[:, :-2]          # (B, T-2)
+        # valid mask for second differences: t in [1 .. lens-2]
+        idx2 = torch.arange(T - 2, device=device).unsqueeze(0)
+        valid2 = idx2 < (lens.view(-1, 1) - 2).clamp_min(0)
+        tv_loss = (second_diff.pow(2) * valid2).sum() / valid2.sum().clamp_min(1)
+    else:
+        tv_loss = torch.zeros((), device=device)
+
+    total = alpha * ranking + tv_beta * tv_loss
+    return total, {"total_loss": total.item(), "ranking": ranking.item(), "tv": tv_loss.item()}
 
 class RewindRewardWorkspace:
     def __init__(self, cfg):
@@ -102,6 +169,7 @@ class RewindRewardWorkspace:
                                   num_cameras=len(self.camera_names),
                                   dense_annotation=cfg.model.dense_annotation).to(self.device)
         
+
         if cfg.model.resume_training:
             reward_model_path = Path(cfg.model.model_path)
             # Load checkpoints
@@ -111,6 +179,7 @@ class RewindRewardWorkspace:
             # Move to device
             reward_model.to(self.device)
             reward_model.train()
+
 
         # Optimizer
         reward_optimizer = torch.optim.AdamW(
@@ -180,7 +249,7 @@ class RewindRewardWorkspace:
                     if cfg.model.no_state:
                         state = torch.zeros_like(state, device=self.device)
                     reward_pred = reward_model(img_emb, lang_emb, state, lens)
-                    reward_loss = F.mse_loss(reward_pred, trg, reduction="mean")
+                    reward_loss, info = vlc_loss(reward_pred, lens)
 
                     reward_optimizer.zero_grad()
                     reward_loss.backward()
@@ -191,8 +260,11 @@ class RewindRewardWorkspace:
 
                     
                     if step % cfg.train.log_every == 0:
+                        train_info = {}
+                        for k, v in info.items():
+                            train_info[f"train/{k}"] = v
                         wandb.log({
-                            "train/total_loss": reward_loss.item(),
+                            **train_info,
                             "train/lr": reward_scheduler.get_last_lr()[0],
                             "train/reward_grad_norm": reward_unclipped,
                             "epoch": epoch,
@@ -242,7 +314,7 @@ class RewindRewardWorkspace:
                         if cfg.model.no_state:
                             state = torch.zeros_like(state, device=self.device)
                         reward_pred = reward_model(img_emb, lang_emb, state, lens)
-                        reward_loss = F.mse_loss(reward_pred, trg, reduction="mean")
+                        reward_loss, info = vlc_loss(reward_pred, lens)
                         total_loss += reward_loss.item()
                         num += 1
 
