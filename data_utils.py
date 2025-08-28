@@ -6,64 +6,105 @@ import random
 import torch
 
 def comply_lerobot_batch(batch: dict, camera_names: List[str] = ["top_camera-images-rgb"]) -> dict:
-        """Comply with lerobot dataset batch format."""
-        # convert to diffusion dataset format
-        # this is a hack to make it work with lerobot dataset
-        result =  {
-            "image_frames": {},
-            "targets": batch["targets"],
-            "lengths": batch["lengths"],
-            "tasks": batch["task"],
-        }
+    """Comply with lerobot dataset batch format."""
+    # convert to diffusion dataset format
+    # this is a hack to make it work with lerobot dataset
+    result =  {
+        "image_frames": {},
+        "targets": batch["targets"],
+        "lengths": batch["lengths"],
+        "tasks": batch["task"],
+    }
 
-        for cam_name in camera_names:
-            result["image_frames"][cam_name] = batch[cam_name]
+    for cam_name in camera_names:
+        result["image_frames"][cam_name] = batch[cam_name]
 
-        return result
+    return result
 
 def comply_lerobot_batch_multi_stage(batch: dict, camera_names: List[str] = ["top_camera-images-rgb"], dense_annotation: bool = False) -> dict:
-        """Comply with lerobot dataset batch format."""
-        # convert to diffusion dataset format
-        # this is a hack to make it work with lerobot dataset
-        result =  {
-            "image_frames": {},
-            "targets": batch["targets"],
-            "lengths": batch["lengths"],
-            "tasks": batch["task"],
-            "state": batch["state"],
-            "frame_relative_indices": batch["frame_relative_indices"],
-        }
+    """Comply with lerobot dataset batch format."""
+    # convert to diffusion dataset format
+    # this is a hack to make it work with lerobot dataset
+    result =  {
+        "image_frames": {},
+        "targets": batch["targets"],
+        "lengths": batch["lengths"],
+        "tasks": batch["task"],
+        "state": batch["state"],
+        "frame_relative_indices": batch["frame_relative_indices"],
+    }
 
-        for cam_name in camera_names:
-            result["image_frames"][cam_name] = batch[cam_name]
+    for cam_name in camera_names:
+        result["image_frames"][cam_name] = batch[cam_name]
 
-        if dense_annotation:
-            transposed = list(map(list, zip(*result["tasks"])))
-            result["tasks"] = transposed
+    if dense_annotation:
+        transposed = list(map(list, zip(*result["tasks"])))
+        result["tasks"] = transposed
 
-        return result
+    return result
+    
+def comply_lerobot_batch_multi_stage_video_eval(batch: dict, camera_names: List[str] = ["top_camera-images-rgb"], dense_annotation: bool = False) -> dict:
+    """Comply with lerobot dataset batch format."""
+    # convert to diffusion dataset format
+    # this is a hack to make it work with lerobot dataset
+    result =  {
+        "image_frames": {},
+        "targets": batch["targets"].unsqueeze(0),  
+        "lengths": batch["lengths"].unsqueeze(0),
+        "tasks": [batch["task"]],
+        "state": batch["state"].unsqueeze(0),
+        "frame_relative_indices": batch["frame_relative_indices"].unsqueeze(0),
+    }
+
+    for cam_name in camera_names:
+        result["image_frames"][cam_name] = batch[cam_name].unsqueeze(0)
+
+    return result
+
     
 def comply_lerobot_batch_regression(batch: dict, camera_names: List[str] = ["top_camera-images-rgb"], dense_annotation: bool = False) -> dict:
-        """Comply with lerobot dataset batch format."""
-        # convert to diffusion dataset format
-        # this is a hack to make it work with lerobot dataset
-        result =  {
-            "image_frames": {},
-            "targets": normalize_sparse_tensor(batch["targets"]),
-            "lengths": batch["lengths"],
-            "tasks": batch["task"],
-            "state": batch["state"],
-            "frame_relative_indices": batch["frame_relative_indices"],
-        }
+    """Comply with lerobot dataset batch format."""
+    # convert to diffusion dataset format
+    # this is a hack to make it work with lerobot dataset
+    result =  {
+        "image_frames": {},
+        "targets": normalize_sparse_tensor(batch["targets"]),
+        "lengths": batch["lengths"],
+        "tasks": batch["task"],
+        "state": batch["state"],
+        "frame_relative_indices": batch["frame_relative_indices"],
+    }
 
-        for cam_name in camera_names:
-            result["image_frames"][cam_name] = batch[cam_name]
+    for cam_name in camera_names:
+        result["image_frames"][cam_name] = batch[cam_name]
 
-        if dense_annotation:
-            transposed = list(map(list, zip(*result["tasks"])))
-            result["tasks"] = transposed
+    if dense_annotation:
+        transposed = list(map(list, zip(*result["tasks"])))
+        result["tasks"] = transposed
 
-        return result
+    return result
+
+def comply_lerobot_batch_regression_eval(batch: dict, camera_names: List[str] = ["top_camera-images-rgb"], dense_annotation: bool = False) -> dict:
+    """Comply with lerobot dataset batch format."""
+    # convert to diffusion dataset format
+    # this is a hack to make it work with lerobot dataset
+    result =  {
+        "image_frames": {},
+        "targets": batch["targets"].unsqueeze(0),
+        "lengths": batch["lengths"].unsqueeze(0),
+        "tasks": batch["task"],
+        "state": batch["state"].unsqueeze(0),
+        "frame_relative_indices": batch["frame_relative_indices"].unsqueeze(0),
+    }
+
+    for cam_name in camera_names:
+        result["image_frames"][cam_name] = batch[cam_name].unsqueeze(0)
+
+    if dense_annotation:
+        transposed = list(map(list, zip(*result["tasks"])))
+        result["tasks"] = transposed
+
+    return result
 
 
 def normalize_sparse_tensor(x: torch.Tensor) -> torch.Tensor:
@@ -176,24 +217,6 @@ def comply_lerobot_batch_multi_stage_hybird(batch: dict,
 
         return result
 
-
-def comply_lerobot_batch_multi_stage_video_eval(batch: dict, camera_names: List[str] = ["top_camera-images-rgb"], dense_annotation: bool = False) -> dict:
-        """Comply with lerobot dataset batch format."""
-        # convert to diffusion dataset format
-        # this is a hack to make it work with lerobot dataset
-        result =  {
-            "image_frames": {},
-            "targets": batch["targets"].unsqueeze(0),  
-            "lengths": batch["lengths"].unsqueeze(0),
-            "tasks": [batch["task"]],
-            "state": batch["state"].unsqueeze(0),
-            "frame_relative_indices": batch["frame_relative_indices"].unsqueeze(0),
-        }
-
-        for cam_name in camera_names:
-            result["image_frames"][cam_name] = batch[cam_name].unsqueeze(0)
-
-        return result
 
 
 def get_valid_episodes(repo_id: str) -> List[int]:

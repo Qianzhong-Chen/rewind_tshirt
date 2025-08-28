@@ -203,3 +203,11 @@ class FrameGapLeRobotDataset(LeRobotDataset):
             rewind_frames = torch.cat([rewind_frames, pad], dim=0)
 
         return rewind_step, rewind_frames
+
+
+if __name__ == "__main__":
+    from data_utils import get_valid_episodes
+    
+    repo_id = "Qianzhong-Chen/tshirt_reward_yam_only_multi_0804"
+    valid_episodes = get_valid_episodes(repo_id)
+    dataset = FrameGapLeRobotDataset(repo_id, episodes=valid_episodes)

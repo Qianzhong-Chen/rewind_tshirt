@@ -116,7 +116,7 @@ def plot_pred_vs_gt(pred: torch.Tensor, gt: torch.Tensor, indices: torch.Tensor,
     plt.savefig(str(save_path.with_name(save_path.stem + "_discrete.png")))
     plt.close()
 
-def plot_episode_result(ep_index, ep_result, gt_ep_result, x_offset, rollout_save_dir):
+def plot_episode_result(ep_index, ep_result, gt_ep_result, x_offset, rollout_save_dir, frame_gap=None, ep_conf=None):
     save_dir = rollout_save_dir / f"episode_{ep_index}"
     save_dir.mkdir(parents=True, exist_ok=True)
 
@@ -127,7 +127,12 @@ def plot_episode_result(ep_index, ep_result, gt_ep_result, x_offset, rollout_sav
     # Convert to numpy arrays
     ep_result_np = np.array(ep_result)
     gt_ep_result_np = np.array(gt_ep_result)
-    timestep = np.arange(len(ep_result_np)) + x_offset
+    ep_conf_np = np.asarray(ep_conf)[x_offset:] if ep_conf is not None else None
+     # === Timesteps ===
+    if frame_gap is None:
+        timesteps = np.arange(len(ep_result_np)) + x_offset
+    else:
+        timesteps = np.arange(0, len(ep_result_np) * frame_gap, frame_gap) + x_offset * frame_gap
 
     # Compute MSE and MAE
     mse = np.mean((ep_result_np - gt_ep_result_np) ** 2)
@@ -135,8 +140,10 @@ def plot_episode_result(ep_index, ep_result, gt_ep_result, x_offset, rollout_sav
 
     # Plot
     plt.figure()
-    plt.plot(timestep, ep_result_np, label="Predicted")
-    plt.plot(timestep, gt_ep_result_np, label="Ground Truth")
+    plt.plot(timesteps, ep_result_np, label="Predicted")
+    plt.plot(timesteps, gt_ep_result_np, label="GT")
+    if ep_conf_np is not None:
+        plt.plot(timesteps, ep_conf_np, label="Conf", linestyle=":", color="green")
     # Add dummy lines for metrics in the legend
     plt.plot([], [], ' ', label=f"MSE: {mse:.4f}")
     plt.plot([], [], ' ', label=f"MAE: {mae:.4f}")

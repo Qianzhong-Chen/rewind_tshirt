@@ -89,7 +89,7 @@ cfg:
     raw_data_run_times: 17
     eval_frame_gap: 10
     # Dense
-    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-13/09-52-35/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_dense_annotation/checkpoints"
+    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-27/01-37-51/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_vlc_sparse/checkpoints/reward_step_040000_loss_0.000.pt"
     raw_data_dir: "/nfs_old/david_chen/dataset/real_eval/sz_03_0813"
 
     

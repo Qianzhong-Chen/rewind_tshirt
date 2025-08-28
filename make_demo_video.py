@@ -156,7 +156,7 @@ def draw_plot_frame_raw_data(step: int, pred, x_offset, width=448, height=448):
 
     return img
 
-def draw_plot_frame_raw_data_hybird(step: int, pred, x_offset, annotation_list, width=448, height=448, frame_gap=None, conf=None, smoothed=None):
+def draw_plot_frame_raw_data_hybird(step: int, pred, x_offset, width=448, height=448, frame_gap=None, conf=None, smoothed=None):
     fig, ax = plt.subplots(figsize=(width / 100, height / 100), dpi=100)  # ensures final image is 448x448
 
     if frame_gap is None:
@@ -282,13 +282,15 @@ def draw_plot_frame_raw_data_norm(step: int, pred, x_offset, width=448, height=4
 
     return img
 
-def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, episode_num, x_offset=30):
+def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, episode_num, x_offset=30, frame_gap=None):
     # === CONFIGURATION ===
     episode_dir = save_dir / f"episode_{episode_num}"
     left_video_path = left_video_dir / f"episode_{episode_num:06d}.mp4"
     middle_video_path = middle_video_dir / f"episode_{episode_num:06d}.mp4"
     right_video_path = right_video_dir / f"episode_{episode_num:06d}.mp4"
     pred_path = episode_dir / "pred.npy"
+    conf_path = episode_dir / "conf.npy"
+    smooth_path = episode_dir / "smoothed.npy"
     gt_path = episode_dir / "gt.npy"
     output_path = episode_dir / "combined_video.mp4"
     frame_rate = 32
@@ -300,32 +302,38 @@ def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, e
     gt_full = np.load(gt_path)
     pred = pred_full[x_offset:]
     gt = gt_full[x_offset:]
+    conf = None
+    smoothed = pred
+    if os.path.exists(conf_path):
+        conf = np.load(conf_path)[x_offset:]
+    if os.path.exists(smooth_path):
+        smoothed = np.load(smooth_path)[x_offset:]
     T = len(pred)
 
     # Load videos
-    clip_left = VideoFileClip(str(left_video_path))
     clip_middle = VideoFileClip(str(middle_video_path))
-    clip_right = VideoFileClip(str(right_video_path))
-    frames_left = [f for f in clip_left.iter_frames(fps=frame_rate)][x_offset:]
-    frames_middle = [f for f in clip_middle.iter_frames(fps=frame_rate)][x_offset:]
-    frames_right = [f for f in clip_right.iter_frames(fps=frame_rate)][x_offset:]
-    assert len(frames_left) >= T and len(frames_middle) >= T and len(frames_right) >= T, "Video(s) too short"
-    total_len = len(frames_left)
+    if frame_gap is not None:
+        frames_middle = [f for f in clip_middle.iter_frames(fps=frame_rate)][x_offset*frame_gap:]
+    else:
+        frames_middle = [f for f in clip_middle.iter_frames(fps=frame_rate)][x_offset:]
+    min_frames_num = len(frames_middle)
+    if min_frames_num < T:
+        gap = T - min_frames_num
+        print(f"WARNING: Not enough frames in videos. Expected {T}, found {min_frames_num}. Adjusting to available frames.")
+        T = min_frames_num
+        pred = pred[gap:]
+    total_len = len(frames_middle)
     indices = np.linspace(0, total_len - 1, T, dtype=int)
-    frames_left = [frames_left[i] for i in indices]
-    frames_right = [frames_right[i] for i in indices]
     frames_middle = [frames_middle[i] for i in indices]
 
 
     # === CREATE COMBINED FRAMES ===
     combined_frames = []
     for t in range(T):
-        left_resized = cv2.resize(frames_left[t], (target_w, target_h))
         middle_resized = cv2.resize(frames_middle[t], (target_w, target_h))
-        right_resized = cv2.resize(frames_right[t], (target_w, target_h))
-        plot_img = draw_plot_frame(t, pred, gt, x_offset, height=target_h, width=target_w)
+        plot_img = draw_plot_frame_raw_data_hybird(t, pred, x_offset, height=target_h, width=target_w, frame_gap=frame_gap, conf=conf, smoothed=smoothed)
 
-        combined = np.concatenate((left_resized, middle_resized, right_resized, plot_img), axis=1)
+        combined = np.concatenate((middle_resized, plot_img), axis=1)
         combined_frames.append(combined)
 
     # === SAVE VIDEO ===
@@ -417,7 +425,7 @@ def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, 
     combined_frames = []
     for t in range(T):
         middle_resized = cv2.resize(frames_middle[t], (target_w, target_h))
-        plot_img = draw_plot_frame_raw_data_hybird(t, pred, x_offset, height=target_h, width=target_w, annotation_list=annotation_list, frame_gap=frame_gap, conf=conf, smoothed=smoothed)
+        plot_img = draw_plot_frame_raw_data_hybird(t, pred, x_offset, height=target_h, width=target_w, frame_gap=frame_gap, conf=conf, smoothed=smoothed)
 
         combined = np.concatenate((middle_resized, plot_img), axis=1)
         combined_frames.append(combined)
