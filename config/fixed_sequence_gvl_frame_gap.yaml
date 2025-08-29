@@ -4,7 +4,7 @@ cfg:
   general:
     # dataset specific
     project_name: "rewind_reward_fixed_seq_model_frame_gap_multi_stage"
-    task_name: "fold_tshirt_regression_sparse"
+    task_name: "fold_tshirt_gvl_sparse"
    
     repo_id: Qianzhong-Chen/tshirt_reward_yam_only_multi_0804 
     # repo_id: Qianzhong-Chen/tshirt_reward_hlm_dense_0812
