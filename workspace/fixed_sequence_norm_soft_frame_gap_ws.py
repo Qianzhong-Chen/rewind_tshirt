@@ -19,6 +19,7 @@ from models.vision_encoder import FrozenVisionEncoder
 from models.clip_encoder import FrozenCLIPEncoder
 from make_demo_video import produce_video, produce_video_raw_data_norm
 from pred_smoother import ConfidenceSmoother
+from ema_smoother import EMASmoother
 import torch.nn as nn
 import cv2
 import numpy as np
@@ -722,7 +723,7 @@ class RewindRewardWorkspace:
         txt_dim = 512
 
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_015000_loss_1.722.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_065000_loss_1.354.pt"
 
         # Create model instances
         stage_model = StageTransformer(d_model=cfg.model.d_model, 
@@ -753,7 +754,7 @@ class RewindRewardWorkspace:
 
         
         # x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
-        x_offset = 0
+        x_offset = 18
         data_dir = cfg.eval.raw_data_dir
         run_times = cfg.eval.raw_data_run_times
         # Get all valid episode paths
@@ -774,15 +775,19 @@ class RewindRewardWorkspace:
 
         for i in range(run_times):
             data_path = eval_list[i]
-            pred_ep_result = [0]
-            pred_ep_smoothed = [0]
-            pred_ep_conf = [1.0]
+            # pred_ep_result = [0]
+            # pred_ep_smoothed = [0]
+            # pred_ep_conf = [1.0]
+            pred_ep_result = []
+            pred_ep_smoothed = []
+            pred_ep_conf = []
             # randomly select 
             ep_index = os.path.basename(data_path)
             frame_num = get_frame_num(data_path)
             traj_joint_data = get_traj_data(data_path)
             eval_frame_gap = cfg.eval.eval_frame_gap
-            smoother = ConfidenceSmoother(cfg.model.num_classes)
+            # smoother = ConfidenceSmoother(cfg.model.num_classes)
+            smoother = EMASmoother(cfg.model.num_classes)
             print(f"[EVAL_RAW]: process {i+1}/{run_times} episode: {ep_index}")
             for idx in tqdm(range(0, frame_num, eval_frame_gap), desc=f"Processing data"):
                 batch = get_frame_data_fast(path=data_path, 
@@ -837,7 +842,13 @@ class RewindRewardWorkspace:
                 pred_ep_result.append(raw_item)
                 # pred_ep_conf.append(stage_conf[0, cfg.model.n_obs_steps].item())
                 
-                smoothed_item, conf_t = smoother.update(stage_prob, batch_idx=0, t_idx=cfg.model.n_obs_steps)
+                if idx >= (x_offset * eval_frame_gap):
+                    smoothed_item, conf_t = smoother.update(stage_prob, batch_idx=0, t_idx=cfg.model.n_obs_steps)
+                else:
+                    smoothed_item = raw_item
+                    stage_conf = stage_prob.gather(-1, stage_pred.unsqueeze(-1)).squeeze(-1)
+                    conf_t = stage_conf[0, cfg.model.n_obs_steps].item()
+                
                 pred_ep_smoothed.append(smoothed_item)  # smoothed prediction
                 pred_ep_conf.append(conf_t)           # raw confidence
              

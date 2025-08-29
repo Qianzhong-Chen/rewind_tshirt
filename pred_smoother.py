@@ -54,5 +54,6 @@ class ConfidenceSmoother:
         w    = np.array(self.hist_confs, dtype=np.float32)
         w    = np.clip(w, self.eps, 1.0) ** self.beta
         smoothed_item = float((w * vals).sum() / (w.sum() + self.eps))
+        self.last_smoothed = smoothed_item  # store for next low-conf case
 
         return smoothed_item, conf_t
