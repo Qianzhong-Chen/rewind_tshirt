@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR
 from tqdm import tqdm
 import wandb
-from lerobot.common.datasets.frame_gap_multi_stage_lerobot_dataset_v2 import FrameGapLeRobotDataset 
+from lerobot.common.datasets.frame_gap_multi_stage_lerobot_dataset_fast import FrameGapLeRobotDataset 
 from data_utils import comply_lerobot_batch_norm, get_valid_episodes, split_train_eval_episodes, comply_lerobot_batch_multi_stage_video_eval
 from train_utils import plot_episode_result, set_seed, save_ckpt, plot_pred_vs_gt, get_normalizer_from_calculated, plot_episode_result, plot_episode_result_raw_data
 from raw_data_utils import get_frame_num, get_frame_data_fast, get_traj_data

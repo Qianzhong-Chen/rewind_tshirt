@@ -220,6 +220,36 @@ def get_frames_indices(idx, n_obs_steps, frame_gap):
 
     return frames
 
+def get_frames_indices_dynamic(idx, n_obs_steps, frame_gap):
+    """
+    Generate frame indices for a sequence of length n_obs_steps+1 that ends at `idx`.
+    - Prefer fixed `frame_gap` when there's enough history.
+    - Otherwise, adapt the effective gap by evenly spacing from 0 to `idx`.
+    - No zero-padding; indices are clamped to [0, idx] and made non-decreasing.
+    """
+    idx = int(idx)
+    gaps = int(n_obs_steps)  # number of intervals before the last frame
+
+    if gaps <= 0:
+        return [idx]
+
+    total_needed = frame_gap * gaps      # framespan needed for fixed gap
+    available = idx - 0                  # since we anchor at 0 here
+
+    if available >= total_needed:
+        # Use fixed frame_gap
+        frames = [idx - frame_gap * (gaps - k) for k in range(gaps)] + [idx]
+    else:
+        # Not enough history: evenly space from 0..idx (adaptive gap)
+        frames = [round(available * k / gaps) for k in range(gaps)] + [idx]
+
+    # Clamp and enforce non-decreasing
+    frames = [max(0, min(idx, f)) for f in frames]
+    for i in range(1, len(frames)):
+        if frames[i] < frames[i - 1]:
+            frames[i] = frames[i - 1]
+    return frames
+
 @lru_cache(maxsize=64)
 def _get_vr(video_path: str):
     # CPU decode; switch to decord.gpu(0) if you want GPU decoding later

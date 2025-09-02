@@ -2,9 +2,13 @@ import torch
 from typing import Callable
 from pathlib import Path
 from .lerobot_dataset import LeRobotDataset
-import time
 from typing import Tuple
 from faker import Faker
+import os
+import concurrent.futures
+import atexit
+from torch.utils.data import get_worker_info
+
 
 
 
@@ -55,64 +59,64 @@ class FrameGapLeRobotDataset(LeRobotDataset):
         self.dense_annotation = dense_annotation
         self.video_eval = video_eval
         self.annotation_list = annotation_list
+        
+        # Fast episode lookup
+        self._ep_to_pos = {int(ep): i for i, ep in enumerate(self.episodes)}
 
-    def get_frame_indices(self, idx: int,
-                      n_obs_steps: int,
-                      frame_gap: int,
-                      ep_start: int = 0,
-                      ep_end: int | None = None) -> list[int]:
-        """
-        Build a monotonic sequence of length n_obs_steps+1 ending at idx.
-        - Prefer fixed frame_gap when enough history exists.
-        - Otherwise adapt the effective gap to fit within [ep_start, idx].
-        - No padding; no extra inputs.
+        # Async video controls (use threads ONLY in main process; disable inside workers)
+        self._async_video_enabled = True
+        self._video_workers = int(os.getenv("LEROBOT_VIDEO_WORKERS", "8"))
 
-        Args:
-            idx: last frame index (target frame).
-            n_obs_steps: number of history steps (total length = n_obs_steps+1).
-            frame_gap: desired fixed stride between history frames when possible.
-            ep_start: episode start index (inclusive).
-            ep_end: episode end index (inclusive); if None, unbounded above.
+        # Per-process executor; created lazily and tied to current PID.
+        self._video_executor = None
+        self._executor_pid = None
 
-        Returns:
-            List of indices (non-decreasing), length = n_obs_steps + 1.
-        """
-        # Clamp idx to episode bounds
-        if ep_end is not None:
-            idx = min(idx, ep_end)
-        idx = max(idx, ep_start)
+    def _maybe_make_executor(self):
+        """Create a per-process ThreadPoolExecutor and register atexit cleanup."""
+        if not self._async_video_enabled:
+            return None
 
-        gaps = n_obs_steps
-        if gaps == 0:
-            return [idx]
+        pid = os.getpid()
+        if self._video_executor is not None and self._executor_pid == pid:
+            return self._video_executor
 
-        # Check if fixed stride fits entirely inside the episode
-        total_needed = frame_gap * gaps  # distance from earliest to idx
-        available = idx - ep_start
+        # New process (e.g., DataLoader worker) or first use: make/replace executor
+        if self._video_executor is not None:
+            try:
+                self._video_executor.shutdown(wait=False, cancel_futures=True)
+            except Exception:
+                pass
 
-        if available >= total_needed:
-            # Use fixed frame_gap
-            frames = [idx - frame_gap * (gaps - k) for k in range(gaps)] + [idx]
-        else:
-            # Not enough history: adapt stride by evenly spacing from ep_start to idx
-            # Use integer rounding and enforce monotonicity.
-            frames = [ep_start + round(available * k / gaps) for k in range(gaps)] + [idx]
-            for i in range(1, len(frames)):
-                if frames[i] < frames[i - 1]:
-                    frames[i] = frames[i - 1]
+        self._video_executor = concurrent.futures.ThreadPoolExecutor(
+            max_workers=self._video_workers,
+            thread_name_prefix="VideoDecoder"
+        )
+        self._executor_pid = pid
 
-        return frames
+        # Ensure cleanup even if __del__ is not called
+        atexit.register(self._video_executor.shutdown, wait=False, cancel_futures=True)
+        return self._video_executor
 
+    def _decode_videos(self, query_timestamps: dict[str, list[float]], ep_idx: int) -> dict[str, torch.Tensor]:
+        """Decode videos synchronously."""
+        video_frames = {}
+        from .video_utils import decode_video_frames
 
+        for vid_key, query_ts in query_timestamps.items():
+            video_path = self.root / self.meta.get_video_file_path(ep_idx, vid_key)
+            frames = decode_video_frames(video_path, query_ts, self.tolerance_s, self.video_backend)
+            video_frames[vid_key] = frames.squeeze(0)
+        return video_frames
+    
     # add fixed ep start to sequence
     def __getitem__(self, idx: int) -> dict:
         item = self.hf_dataset[idx]
         ep_idx = item["episode_index"].item()
         assert ep_idx in self.episodes, f"Episode {ep_idx} not found in the selected episodes."
-        global_idx = self.episodes.index(ep_idx)
+        global_idx = self._ep_to_pos[ep_idx]
 
-        ep_start = self.episode_data_index["from"][global_idx].item()
-        ep_end = self.episode_data_index["to"][global_idx].item()
+        ep_start = int(self.episode_data_index["from"][global_idx])
+        ep_end = int(self.episode_data_index["to"][global_idx])
 
         # Adjust idx if there's not enough history
         required_history = self.n_obs_steps * self.frame_gap
@@ -120,9 +124,33 @@ class FrameGapLeRobotDataset(LeRobotDataset):
             idx = ep_start + required_history
 
         # Compute frame indices for observation
-        obs_indices = self.get_frame_indices(idx, self.n_obs_steps, self.frame_gap, ep_start, ep_end)
+        obs_indices = [ep_start] + [idx - i * self.frame_gap for i in reversed(range(self.n_obs_steps))]        
         sequence = self.hf_dataset.select(obs_indices)
+        
+        # Query video frames
+        obs_ts_range = self.timestamp_tensor[obs_indices].tolist()
+        query_ts_dict = {key: obs_ts_range for key in self.wrapped_video_keys}
+        wi = get_worker_info()
+        use_async = (wi is None)  # only main process uses threadpool; workers decode sync
+        video_future = None
+        if use_async and self._async_video_enabled:
+            executor = self._maybe_make_executor()
+            if executor is not None:
+                video_future = executor.submit(self._decode_videos, query_ts_dict, ep_idx)
 
+        if not self.video_eval:
+            rewind_flag = torch.rand(1).item() < 0.8 and idx > ep_start + required_history
+        else:
+            rewind_flag = False
+        
+        if rewind_flag:
+            max_valid_step = (idx - self.frame_gap) // self.frame_gap
+            max_rewind = min(self.max_rewind_steps, max_valid_step)
+            rewind_step = torch.randint(1, max_rewind + 1, (1,)).item()
+        else:
+            rewind_step = 0
+            
+            
         # Extract sequence data
         seq_item = {}
         for key in sequence.features:
@@ -137,40 +165,6 @@ class FrameGapLeRobotDataset(LeRobotDataset):
                 seq_item[key] = value[0]
             del value
         del sequence
-
-        # Query video frames
-        obs_ts_range = self.timestamp_tensor[obs_indices].tolist()
-        query_ts_dict = {key: obs_ts_range for key in self.wrapped_video_keys}
-        video_frames = self._query_videos(query_ts_dict, ep_idx)
-        
-        if not self.video_eval and self.max_rewind_steps > 0:
-            rewind_flag = torch.rand(1).item() < 0.8 and idx > ep_start + required_history
-        else:
-            rewind_flag = False
-        rewind_step = None
-        for key in self.wrapped_video_keys:
-            frames = video_frames[key]
-            if frames.shape[0] < self.n_obs_steps:
-                pad_count = self.n_obs_steps - frames.shape[0]
-                pad_frame = frames[-1:].repeat(pad_count, 1, 1, 1)
-                frames = torch.cat([frames, pad_frame], dim=0)
-
-            if rewind_flag:
-                rewind_step, rewind_frames = self._get_rewind(
-                    idx, key, ep_idx, rewind_step=rewind_step
-                )
-                frames = torch.cat([frames, rewind_frames], dim=0)
-            else:
-                rewind_step = 0
-                padding_frames = torch.zeros((self.max_rewind_steps, *frames.shape[1:]), dtype=frames.dtype)
-                frames = torch.cat([frames, padding_frames], dim=0)
-
-            seq_item[key] = frames
-
-        if self.image_transforms is not None:
-            for cam in self.meta.camera_keys:
-                if cam in seq_item:
-                    seq_item[cam] = self.image_transforms(seq_item[cam])
 
         # Task string
         pertube_task_flag = torch.rand(1).item() < 0.2
@@ -216,22 +210,49 @@ class FrameGapLeRobotDataset(LeRobotDataset):
                     stage_idx =  int(torch.floor(seq_item["targets"][i]).item())
                     stage_idx = min(stage_idx, len(self.annotation_list) - 1)
                     seq_item["task"][i] = self.annotation_list[stage_idx]
+
+
+        # ==== WAIT (or sync fallback) for video ====
+        if video_future is not None:
+            try:
+                video_frames = video_future.result(timeout=10.0)
+            except Exception as e:
+                print(f"[Warning] Video async failed ({e}); falling back to sync.")
+                video_frames = self._decode_videos(query_ts_dict, ep_idx)
+        else:
+            video_frames = self._decode_videos(query_ts_dict, ep_idx)
         
+        
+
+        for key in self.wrapped_video_keys:
+            frames = video_frames[key]
+            if frames.shape[0] < self.n_obs_steps:
+                pad_count = self.n_obs_steps - frames.shape[0]
+                pad_frame = frames[-1:].repeat(pad_count, 1, 1, 1)
+                frames = torch.cat([frames, pad_frame], dim=0)
+
+            if rewind_flag:
+                rewind_frames = self._get_rewind(idx, key, ep_idx, rewind_step)
+                frames = torch.cat([frames, rewind_frames], dim=0)
+            else:
+                padding_frames = torch.zeros((self.max_rewind_steps, *frames.shape[1:]), dtype=frames.dtype)
+                frames = torch.cat([frames, padding_frames], dim=0)
+
+            seq_item[key] = frames
+
+        if self.image_transforms is not None:
+            for cam in self.meta.camera_keys:
+                if cam in seq_item:
+                    seq_item[cam] = self.image_transforms(seq_item[cam])
+
 
         del item, video_frames, query_ts_dict, obs_ts_range, progress_list, state_with_rewind, frame_relative_indices
 
         return seq_item
 
 
-    def _get_rewind(self, idx: int, key: str, ep_idx: int, rewind_step=None) -> Tuple[int, torch.Tensor]:
+    def _get_rewind(self, idx: int, key: str, ep_idx: int, rewind_step:int) -> Tuple[int, torch.Tensor]:
         assert self.max_rewind_steps < self.n_obs_steps, "Max rewind steps must be less than n_obs_steps."
-
-        max_valid_step = (idx - self.frame_gap) // self.frame_gap
-        max_rewind = min(self.max_rewind_steps, max_valid_step)
-
-        if rewind_step is None:
-            rewind_step = torch.randint(1, max_rewind + 1, (1,)).item()
-
         rewind_indices = list(range(idx - rewind_step * self.frame_gap, idx, self.frame_gap))
         if len(rewind_indices) < rewind_step:
             pad_count = rewind_step - len(rewind_indices)
@@ -239,7 +260,25 @@ class FrameGapLeRobotDataset(LeRobotDataset):
 
         rewind_ts_range = self.timestamp_tensor[rewind_indices].tolist()
         query_ts_dict = {key: rewind_ts_range}
-        rewind_frames = self._query_videos(query_ts_dict, ep_idx)[key]
+        wi = get_worker_info()
+        use_async = (wi is None)  # only main process uses threadpool; workers decode sync
+        video_future = None
+        if use_async and self._async_video_enabled:
+            executor = self._maybe_make_executor()
+            if executor is not None:
+                video_future = executor.submit(self._decode_videos, query_ts_dict, ep_idx)
+
+
+        # ==== WAIT (or sync fallback) for video ====
+        if video_future is not None:
+            try:
+                video_frames = video_future.result(timeout=10.0)
+            except Exception as e:
+                print(f"[Warning] Video async failed ({e}); falling back to sync.")
+                video_frames = self._decode_videos(query_ts_dict, ep_idx)
+        else:
+            video_frames = self._decode_videos(query_ts_dict, ep_idx)
+        rewind_frames = video_frames[key]
 
         if rewind_frames.ndim == 3:
             rewind_frames = rewind_frames.unsqueeze(0)
@@ -250,12 +289,4 @@ class FrameGapLeRobotDataset(LeRobotDataset):
             pad = torch.zeros((padding_needed, *rewind_frames.shape[1:]), dtype=rewind_frames.dtype)
             rewind_frames = torch.cat([rewind_frames, pad], dim=0)
 
-        return rewind_step, rewind_frames
-
-
-if __name__ == "__main__":
-    from data_utils import get_valid_episodes
-    
-    repo_id = "Qianzhong-Chen/tshirt_reward_yam_only_multi_0804"
-    valid_episodes = get_valid_episodes(repo_id)
-    dataset = FrameGapLeRobotDataset(repo_id, episodes=valid_episodes)
+        return rewind_frames

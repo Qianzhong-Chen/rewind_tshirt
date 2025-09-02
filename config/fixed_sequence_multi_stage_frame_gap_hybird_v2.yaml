@@ -1,0 +1,134 @@
+_target_: workspace.fixed_sequence_multi_stage_frame_gap_hybird_ws_v2.RewindRewardWorkspace
+
+cfg:
+  general:
+    # dataset specific
+    project_name: "rewind_reward_fixed_seq_model_frame_gap_multi_stage"
+    task_name: "fold_tshirt_hybird"
+   
+    # repo_id: Qianzhong-Chen/tshirt_reward_anno_0717 # 300 dataset, combine yam and arx
+    # repo_id: Qianzhong-Chen/tshirt_reward_yam_only_multi_0804 # 329 dataset, yam only
+    # repo_id: Qianzhong-Chen/tshirt_reward_test_0717
+    # repo_id: Qianzhong-Chen/tshirt_reward_debug
+
+    repo_id_sparse: Qianzhong-Chen/tshirt_reward_yam_only_multi_0804 
+    repo_id_dense: Qianzhong-Chen/tshirt_reward_hlm_dense_0812
+
+    # # For test
+    # repo_id_sparse: Qianzhong-Chen/tshirt_reward_test_0717
+    # repo_id_dense: Qianzhong-Chen/tshirt_reward_hlm_dense_0812
+    state_norm_path: "/home/david_chen/rewind_tshirt/assets/fold_tshirt.json"
+    camera_names:  [top_camera-images-rgb]
+    seed: 42
+    device: "cuda"        # "cpu" for debugging
+
+  dataloader:
+    batch_size: 32
+    num_workers: 6 # nproc=32
+    shuffle: True
+    pin_memory: True
+    persistent_workers: True
+
+  val_dataloader:
+    batch_size: 32
+    num_workers: 6
+    shuffle: False
+    pin_memory: True
+    persistent_workers: True
+
+  rollout_dataloader:
+    batch_size: 1 # don't change
+    num_workers: 12
+    shuffle: True
+    pin_memory: True
+    persistent_workers: True
+
+  encoders:               
+    # # DINO
+    # vision_ckpt: "facebook/dinov2-base"
+    # text_ckpt:   "sentence-transformers/all-MiniLM-L6-v2"
+    # # text_ckpt:   "sentence-transformers/paraphrase-MiniLM-L3-v2"
+
+    # CLIP
+    vision_ckpt: "openai/clip-vit-base-patch32"
+    text_ckpt: "openai/clip-vit-base-patch32"
+
+  model:
+    d_model: 768          # CLS width of dinov2-base
+    max_seq_len: 128
+    n_layers: 8
+    n_heads: 12
+    dropout: 0.1
+    horizon: 8
+    n_obs_steps: 8
+    max_rewind_steps: 4
+    frame_gap: 30
+    state_dim: 14
+    no_state: True
+    dense_annotation: False # check the rule inside the dataset class to allign with progress
+
+    # Sparse anno
+    num_classes_sparse: 6 # num_classes = num_stage
+    sparse_annotation_list: [
+            "grab crumpled tshirt from pile", 
+            "move the tshirt to center",
+            "Flatten the tshirt out",
+            "Fold the tshirt",
+            "Neatly place the folded tshirt to the corner",
+    ]
+
+    # Dense anno
+    num_classes_dense: 9 # num_classes = num_stage
+    dense_annotation_list: [
+        "grab crumpled tshirt and move to center",
+        "flatten out the tshirt",
+        "grab near side and fold one-third",
+        "grab far side and fold into rectangle",
+        "rotate the tshirt 90 degrees",
+        "grab bottom and fold one-third",
+        "grab two-third side and fold into square",
+        "put folded tshirt into corner"
+    ]
+
+  optim:
+    lr: 5e-5
+    weight_decay: 5.0e-3
+    betas: [0.9, 0.95]
+    eps: 1.0e-8
+    warmup_steps: 1000
+    total_steps: 1000_000
+
+  train:
+    num_epochs: 5
+    grad_clip: 1.0
+    log_every: 50        # steps
+    eval_every: 1        # epochs
+    save_every: 5_000     # steps
+    val_portion: 0.1     # fraction of episodes for validation
+    rollout_every: 1     # epoch
+    rollout_steps: 10    # steps per rollout
+
+  eval:
+    run_times: 50        # number of rollouts
+    video_run_times: 20 # number of episodes to evaluate in video
+    raw_data_run_times: 17
+    eval_frame_gap: 10
+    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-16/08-14-36/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/checkpoints"
+
+    
+    # # Sparse
+    mode: "sparse"
+    # # Eval set
+    # raw_data_dir: "/nfs_old/david_chen/dataset/hlm_tshirt_reward_select"
+    # # Train set
+    # raw_data_dir: "/nfs_old/dataset/tshirt_reward_yam_only/folding_tshirt"
+    raw_data_dir: "/nfs_old/david_chen/dataset/real_eval/sz_03_0813" # real rollout, 17 trajs
+    
+    # # Dense
+    # mode: "dense"
+    # Eval set
+    # raw_data_dir: "/nfs_old/dataset/tshirt_reward_yam_only/folding_tshirt"
+    # Train set    
+    # raw_data_dir: "/nfs_old/david_chen/dataset/hlm_tshirt_reward_select"
+
+    
