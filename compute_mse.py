@@ -8,7 +8,7 @@ import numpy as np
 from typing import List, Tuple, Optional
 
 # >>> Hardcoded path <<<
-BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-08-28/07-05-01/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_regression_sparse/eval_video/2025.08.28-07.05.20"
+BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-09-03/01-31-18/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/eval_video/2025.09.03-01.31.45"
 # BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-08-28/07-09-50/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/eval_video/2025.08.28-07.10.12"
 
 def load_pair(ep_dir: Path) -> Optional[Tuple[np.ndarray, np.ndarray]]:
