@@ -613,10 +613,10 @@ class RewindRewardWorkspace:
 
         # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_080000_loss_0.004.pt"
-        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_080000_loss_0.011.pt"
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.014.pt"
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.014.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_080000_loss_0.004.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_080000_loss_0.008.pt"
         
         if anno_type == "sparse":
             num_classes = cfg.model.num_classes_sparse
@@ -772,8 +772,10 @@ class RewindRewardWorkspace:
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
         # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.014.pt"
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_080000_loss_0.004.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_080000_loss_0.008.pt"
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_080000_loss_0.004.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_080000_loss_0.008.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.014.pt"
         
         anno_type = cfg.eval.mode
         if anno_type == "sparse":
@@ -825,7 +827,7 @@ class RewindRewardWorkspace:
 
         
         # x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
-        x_offset = 18
+        x_offset = 0
         data_dir = cfg.eval.raw_data_dir
         run_times = cfg.eval.raw_data_run_times
         # Get all valid episode paths

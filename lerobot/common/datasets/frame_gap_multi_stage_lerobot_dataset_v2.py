@@ -116,8 +116,8 @@ class FrameGapLeRobotDataset(LeRobotDataset):
 
         # Adjust idx if there's not enough history
         required_history = self.n_obs_steps * self.frame_gap
-        if idx - required_history < ep_start:
-            idx = ep_start + required_history
+        # if idx - required_history < ep_start:
+        #     idx = ep_start + required_history
 
         # Compute frame indices for observation
         obs_indices = self.get_frame_indices(idx, self.n_obs_steps, self.frame_gap, ep_start, ep_end)

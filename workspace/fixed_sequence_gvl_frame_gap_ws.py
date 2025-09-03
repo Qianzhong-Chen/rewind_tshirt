@@ -8,6 +8,7 @@ from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR
 from tqdm import tqdm
 import wandb
 from lerobot.common.datasets.frame_gap_traj_lerobot_dataset import EpsLeRobotDataset 
+from lerobot.common.datasets.frame_gap_multi_stage_lerobot_dataset import FrameGapLeRobotDataset 
 from data_utils import comply_lerobot_batch_regression, comply_lerobot_batch_regression_eval, get_valid_episodes, split_train_eval_episodes, comply_lerobot_batch_multi_stage_video_eval
 from train_utils import plot_episode_result, set_seed, save_ckpt, plot_pred_vs_gt, get_normalizer_from_calculated, plot_episode_result, plot_episode_result_raw_data
 from raw_data_utils import get_frame_num, get_frame_data_fast, get_traj_data, normalize_dense
@@ -476,13 +477,16 @@ class RewindRewardWorkspace:
         cfg = self.cfg
         repo_id = cfg.general.repo_id
         valid_episodes = get_valid_episodes(repo_id)
-        dataset_val = EpsLeRobotDataset(repo_id=cfg.general.repo_id, 
+        dataset_val = FrameGapLeRobotDataset(repo_id=repo_id, 
                                                horizon=cfg.model.horizon, 
                                                episodes=valid_episodes, 
                                                n_obs_steps=cfg.model.n_obs_steps, 
+                                               frame_gap=30,
+                                               max_rewind_steps=0,
                                                image_names=cfg.general.camera_names,
                                                dense_annotation=cfg.model.dense_annotation,
-                                               annotation_list=cfg.model.annotation_list)
+                                               annotation_list=cfg.model.annotation_list,
+                                               video_eval=True)
         
         dataloader_rollout = torch.utils.data.DataLoader(dataset_val, **cfg.rollout_dataloader)
         state_normalizer = get_normalizer_from_calculated(cfg.general.state_norm_path, self.device)
