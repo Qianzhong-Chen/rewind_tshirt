@@ -23,7 +23,7 @@ cfg:
     device: "cuda"        # "cpu" for debugging
 
   dataloader:
-    batch_size: 32
+    batch_size: 48
     num_workers: 6 # nproc=32
     shuffle: True
     pin_memory: True
@@ -99,11 +99,11 @@ cfg:
     total_steps: 1000_000
 
   train:
-    num_epochs: 5
+    num_epochs: 2
     grad_clip: 1.0
     log_every: 50        # steps
     eval_every: 1        # epochs
-    save_every: 5_000     # steps
+    save_every: 5_000    # steps
     val_portion: 0.1     # fraction of episodes for validation
     rollout_every: 1     # epoch
     rollout_steps: 10    # steps per rollout
