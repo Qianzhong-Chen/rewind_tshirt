@@ -208,9 +208,9 @@ def get_frames_indices(idx, n_obs_steps, frame_gap):
     - Fill with zeros if needed
     """
     # TODO: policy before 0903 need required_history
-    required_history = n_obs_steps * frame_gap
-    if idx - required_history < 0:
-        idx = required_history
+    # required_history = n_obs_steps * frame_gap
+    # if idx - required_history < 0:
+    #     idx = required_history
     frames = [0] * (n_obs_steps + 1)  # Initialize
     frames[-1] = idx  # last frame
 

@@ -10,7 +10,7 @@ import wandb
 from lerobot.common.datasets.frame_gap_multi_stage_lerobot_dataset import FrameGapLeRobotDataset 
 from data_utils import comply_lerobot_batch_regression, get_valid_episodes, split_train_eval_episodes, comply_lerobot_batch_multi_stage_video_eval
 from train_utils import plot_episode_result, set_seed, save_ckpt, plot_pred_vs_gt, get_normalizer_from_calculated, plot_episode_result, plot_episode_result_raw_data
-from raw_data_utils import get_frame_num, get_frame_data_fast, get_traj_data
+from raw_data_utils import get_frame_num, get_frame_data_fast, get_traj_data, normalize_dense
 from models.multi_stage_reward_net import RewardTransformer
 from models.clip_encoder import FrozenCLIPEncoder
 from make_demo_video import produce_video, produce_video_raw_data, produce_video_raw_data_hybird
@@ -589,7 +589,7 @@ class RewindRewardWorkspace:
         txt_dim = 512
 
         # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_035000_loss_0.018.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) 
 
         # Create model instances
         reward_model = RewardTransformer(d_model=cfg.model.d_model, 
@@ -628,12 +628,13 @@ class RewindRewardWorkspace:
             end_idx = dataset_val.episode_data_index["to"][global_idx].item()
             pred_ep_result = [0]
             gt_ep_result = [0]
-            x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
-            # x_offset = 0
+            eval_frame_gap = cfg.eval.eval_frame_gap
+            x_offset = 9
+            # x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
             print(f"[Eval Video] Evaluating episode_{ep_index}, progress: {i} / {cfg.eval.video_run_times}")
 
             # change to use tqdm
-            for idx in tqdm(range(start_idx, end_idx), desc=f"Processing episode {ep_index}"):
+            for idx in tqdm(range(start_idx, end_idx, eval_frame_gap), desc=f"Processing episode {ep_index}"):
                 data_point = dataset_val.__getitem__(idx)
                 batch = comply_lerobot_batch_multi_stage_video_eval(data_point, 
                                                                     camera_names=cfg.general.camera_names, 
@@ -676,7 +677,7 @@ class RewindRewardWorkspace:
                     smoothed_item = torch.mean(pred[0, 1:1+cfg.model.n_obs_steps]).item() 
                 smoothed_item = min(max(smoothed_item, pred_ep_result[-1]-0.0125), pred_ep_result[-1] + 0.0125)
                 pred_ep_result.append(smoothed_item)
-                gt_ep_result.append(trg[0, cfg.model.n_obs_steps].item())
+                gt_ep_result.append(normalize_dense(trg[0, cfg.model.n_obs_steps].item()))
 
             # save results
             save_dir = plot_episode_result(ep_index, pred_ep_result, gt_ep_result, x_offset, rollout_save_dir)

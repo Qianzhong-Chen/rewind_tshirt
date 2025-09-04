@@ -87,10 +87,11 @@ cfg:
   eval:
     run_times: 50        # number of rollouts
     video_run_times: 20 # number of episodes to evaluate in video
-    raw_data_run_times: 17
+    raw_data_run_times: 36
     eval_frame_gap: 10
     # Dense
     ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-27/01-34-32/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_regression_sparse/checkpoints/reward_step_040000_loss_0.004.pt"
-    raw_data_dir: "/nfs_old/david_chen/dataset/real_eval/sz_03_0813"
+    # raw_data_dir: "/nfs_old/david_chen/dataset/real_eval/sz_03_0813"
+    raw_data_dir: "/nfs_old/david_chen/policy_rollout/hlm_40k_rollout"
 
     

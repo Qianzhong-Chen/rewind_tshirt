@@ -676,8 +676,8 @@ class RewindRewardWorkspace:
                                     traj_joint_data=traj_joint_data, 
                                     idx=idx,
                                     n_obs_steps=cfg.model.n_obs_steps,
-                                    frame_gap=cfg.model.frame_gap,
-                                    max_rewind_steps=cfg.model.max_rewind_steps,
+                                    frame_gap=30,
+                                    max_rewind_steps=0,
                                     camera_names=cfg.general.camera_names,
                                     device=self.device)
                 

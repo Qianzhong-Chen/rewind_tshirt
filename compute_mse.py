@@ -9,12 +9,14 @@ from typing import List, Tuple, Optional
 
 # >>> Hardcoded path <<<
 # BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-08-28/07-05-01/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_regression_sparse/eval_video/2025.08.28-07.05.20"
-BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-08-28/07-09-50/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/eval_video/2025.08.28-07.10.12"
+# BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-08-28/07-09-50/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/eval_video/2025.08.28-07.10.12"
 # BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-09-03/01-31-18/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/eval_video/2025.09.03-01.31.45"
 # BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-09-03/13-44-00/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_gvl_sparse/eval_video/2025.09.03-13.44.20"
+BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-09-04/16-59-37/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_vlc_sparse/eval_video/2025.09.04-17.00.06"
 
 def load_pair(ep_dir: Path) -> Optional[Tuple[np.ndarray, np.ndarray]]:
-    sm_path = ep_dir / "smoothed.npy"
+    # sm_path = ep_dir / "smoothed.npy"
+    sm_path = ep_dir / "pred.npy"
     gt_path = ep_dir / "gt.npy"
     if not (sm_path.exists() and gt_path.exists()):
         return None
@@ -44,7 +46,8 @@ def mse(a: np.ndarray, b: np.ndarray) -> float:
 def find_episodes(base: Path) -> List[Path]:
     eps = []
     for p in sorted(base.iterdir()):
-        if p.is_dir() and (p / "smoothed.npy").exists() and (p / "gt.npy").exists():
+        # if p.is_dir() and (p / "smoothed.npy").exists() and (p / "gt.npy").exists():
+        if p.is_dir() and (p / "gt.npy").exists():
             eps.append(p)
     return eps
 
