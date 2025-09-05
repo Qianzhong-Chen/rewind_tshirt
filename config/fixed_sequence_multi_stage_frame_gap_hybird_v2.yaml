@@ -114,7 +114,7 @@ cfg:
     raw_data_run_times: 36
     eval_frame_gap: 10
     # ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-30/04-30-24/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/checkpoints"
-    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-09-04/01-51-16/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/checkpoints"
+    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-09-04/01-51-16/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/checkpoints" # best hybird with first frames
     
     # # Sparse
     mode: "sparse"

@@ -779,8 +779,10 @@ class RewindRewardWorkspace:
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_140000_loss_0.006.pt"
         
         # # 0904_model
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_010000_loss_0.009.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_010000_loss_0.035.pt"
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_010000_loss_0.009.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_010000_loss_0.035.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_050000_loss_0.002.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_050000_loss_0.002.pt"
         
         
         anno_type = cfg.eval.mode
