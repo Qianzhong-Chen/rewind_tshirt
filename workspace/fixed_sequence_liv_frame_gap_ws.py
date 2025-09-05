@@ -12,7 +12,7 @@ from lerobot.common.datasets.frame_gap_multi_stage_lerobot_dataset import FrameG
 from data_utils import comply_lerobot_batch_regression, comply_lerobot_batch_regression_eval, get_valid_episodes, split_train_eval_episodes, comply_lerobot_batch_multi_stage_video_eval
 from train_utils import plot_episode_result, set_seed, save_ckpt, plot_pred_vs_gt, get_normalizer_from_calculated, plot_episode_result, plot_episode_result_raw_data
 from raw_data_utils import get_frame_num, get_frame_data_fast, get_traj_data, normalize_dense
-from models.multi_stage_reward_net import RewardTransformer
+from models.liv_reward_net import RewardTransformer
 from models.clip_encoder import FrozenCLIPEncoder
 from make_demo_video import produce_video, produce_video_raw_data, produce_video_raw_data_hybird
 import torch.nn as nn
@@ -41,9 +41,9 @@ class RewindRewardWorkspace:
         e0, es0_vip, es1_vip, eg = pred[:, 0], pred[:, 1], pred[:, 2], pred[:, 3]
         r =  b_reward.to(e0.device)
 
-        V_0 = F.mse_loss(e0, eg, reduction='none')  # (B,)
-        V_s = F.mse_loss(es0_vip, eg, reduction='none')  # (B,)
-        V_s_next = F.mse_loss(es1_vip, eg, reduction='none')  # (B,)
+        V_0 = F.mse_loss(e0, eg, reduction='none').mean(1)  # (B,)
+        V_s = F.mse_loss(es0_vip, eg, reduction='none').mean(1)  # (B,)
+        V_s_next = F.mse_loss(es1_vip, eg, reduction='none').mean(1)  # (B,)
 
         # Rescale Value 
         V_0 = V_0 / (1-gamma)
@@ -211,8 +211,8 @@ class RewindRewardWorkspace:
 
                     if cfg.model.no_state:
                         state = torch.zeros_like(state, device=self.device)
-                    reward_pred = reward_model(img_emb, lang_emb, state, lens)
-                    reward_loss = self.compute_vip_loss(reward_pred, gt_reward)
+                    emb, reward_pred = reward_model(img_emb, lang_emb, state, lens)
+                    reward_loss = self.compute_vip_loss(emb, gt_reward) + F.mse_loss(reward_pred, trg, reduction='mean')
 
                     reward_optimizer.zero_grad()
                     reward_loss.backward()
@@ -274,8 +274,8 @@ class RewindRewardWorkspace:
 
                         if cfg.model.no_state:
                             state = torch.zeros_like(state, device=self.device)
-                        reward_pred = reward_model(img_emb, lang_emb, state, lens)
-                        reward_loss = self.compute_vip_loss(reward_pred, gt_reward)
+                        emb, reward_pred = reward_model(img_emb, lang_emb, state, lens)
+                        reward_loss = self.compute_vip_loss(emb, gt_reward) + F.mse_loss(reward_pred, trg, reduction='mean')
                         total_loss += reward_loss.item()
                         num += 1
 
@@ -323,7 +323,7 @@ class RewindRewardWorkspace:
 
                         if cfg.model.no_state:
                             state = torch.zeros_like(state, device=self.device)
-                        reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
+                        _, reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
                         pred = torch.clip(reward_pred, 0, 1)  # (B, T)
 
                         length = int(lens[0].item())
@@ -364,7 +364,7 @@ class RewindRewardWorkspace:
                 
 
             # --- clear memory ---
-            del img_list, imgs_all, img_emb, lang_emb, reward_pred, pred
+            del img_list, imgs_all, img_emb, lang_emb, reward_pred
             torch.cuda.empty_cache()
 
 
@@ -606,11 +606,11 @@ class RewindRewardWorkspace:
                 
                 reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
                 pred = torch.clip(reward_pred, 0, 1)  # (B, T)
-                raw_item = pred[0, cfg.model.n_obs_steps].item()
+                raw_item = pred[0, 1].item()
                 smoothed_item = raw_item
                 
                 pred_ep_result.append(raw_item)
-                gt_ep_result.append(normalize_dense(trg[0, cfg.model.n_obs_steps].item()))
+                gt_ep_result.append(normalize_dense(trg[0, 1].item()))
                 pred_ep_smoothed.append(smoothed_item)
                 
             # save results
