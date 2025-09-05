@@ -1,10 +1,10 @@
-_target_: workspace.fixed_sequence_gvl_frame_gap_ws.RewindRewardWorkspace
+_target_: workspace.fixed_sequence_liv_frame_gap_ws.RewindRewardWorkspace
 
 cfg:
   general:
     # dataset specific
     project_name: "rewind_reward_fixed_seq_model_frame_gap_multi_stage"
-    task_name: "fold_tshirt_gvl_sparse"
+    task_name: "fold_tshirt_liv_sparse"
    
     repo_id: Qianzhong-Chen/tshirt_reward_yam_only_multi_0804 
     # repo_id: Qianzhong-Chen/tshirt_reward_hlm_dense_0812
@@ -14,7 +14,7 @@ cfg:
     device: "cuda"        # "cpu" for debugging
 
   dataloader:
-    batch_size: 32
+    batch_size: 64
     num_workers: 12 # nproc=32
     shuffle: True
     pin_memory: True
@@ -45,8 +45,6 @@ cfg:
     n_layers: 6
     n_heads: 12
     dropout: 0.1
-    horizon: 8
-    n_obs_steps: 12
     state_dim: 14
     no_state: True
     dense_annotation: False # check the rule inside the dataset class to allign with progress
@@ -77,9 +75,9 @@ cfg:
     grad_clip: 1.0
     log_every: 50        # steps
     eval_every: 1        # epochs
-    save_every: 5_000     # steps
+    save_every: 10_000     # steps
     val_portion: 0.1     # fraction of episodes for validation
-    rollout_every: 1     # epoch
+    rollout_every: 10     # epoch
     rollout_steps: 10    # steps per rollout
 
   eval:
