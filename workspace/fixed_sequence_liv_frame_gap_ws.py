@@ -11,7 +11,7 @@ from lerobot.common.datasets.liv_lerobot_dataset import LIVLeRobotDataset
 from lerobot.common.datasets.frame_gap_multi_stage_lerobot_dataset import FrameGapLeRobotDataset 
 from data_utils import comply_lerobot_batch_regression, comply_lerobot_batch_regression_eval, get_valid_episodes, split_train_eval_episodes, comply_lerobot_batch_multi_stage_video_eval
 from train_utils import plot_episode_result, set_seed, save_ckpt, plot_pred_vs_gt, get_normalizer_from_calculated, plot_episode_result, plot_episode_result_raw_data
-from raw_data_utils import get_frame_num, get_frame_data_fast, get_traj_data, normalize_dense
+from raw_data_utils import get_frame_num, get_frame_data_fast_liv, get_traj_data, normalize_dense
 from models.liv_reward_net import RewardTransformer
 from models.clip_encoder import FrozenCLIPEncoder
 from make_demo_video import produce_video, produce_video_raw_data, produce_video_raw_data_hybird
@@ -604,7 +604,7 @@ class RewindRewardWorkspace:
                 if cfg.model.no_state:
                     state = torch.zeros_like(state, device=self.device)
                 
-                reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
+                emb, reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
                 pred = torch.clip(reward_pred, 0, 1)  # (B, T)
                 raw_item = pred[0, 1].item()
                 smoothed_item = raw_item
@@ -702,14 +702,11 @@ class RewindRewardWorkspace:
             eval_frame_gap = cfg.eval.eval_frame_gap
             print(f"[EVAL_RAW]: process {i+1}/{run_times} episode: {ep_index}")
             for idx in tqdm(range(0, frame_num, eval_frame_gap), desc=f"Processing data"):
-                batch = get_frame_data_fast(path=data_path, 
-                                    traj_joint_data=traj_joint_data, 
-                                    idx=idx,
-                                    n_obs_steps=cfg.model.n_obs_steps,
-                                    frame_gap=30,
-                                    max_rewind_steps=0,
-                                    camera_names=cfg.general.camera_names,
-                                    device=self.device)
+                batch = get_frame_data_fast_liv(path=data_path, 
+                                                traj_joint_data=traj_joint_data, 
+                                                idx=idx,
+                                                camera_names=cfg.general.camera_names,
+                                                device=self.device)
                 
                 B, T = batch["image_frames"][self.camera_names[0]].shape[:2]
                 img_list = []
@@ -718,7 +715,7 @@ class RewindRewardWorkspace:
                     img_list.append(imgs)
                 
                 lang_strs = ["fold the tshirt"]
-                lens = torch.tensor([1+cfg.model.n_obs_steps], dtype=torch.int32, device=self.device)
+                lens = torch.tensor([4], dtype=torch.int32, device=self.device)
                 state = batch["state"].to(self.device)
                 state = state_normalizer.normalize(state)
                 
@@ -737,9 +734,9 @@ class RewindRewardWorkspace:
 
                 if cfg.model.no_state:
                     state = torch.zeros_like(state, device=self.device)
-                reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
+                emb, reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
                 pred = torch.clip(reward_pred, 0, 1)  # (B, T)
-                raw_item = pred[0, cfg.model.n_obs_steps].item()
+                raw_item = pred[0, 1].item()
                 smoothed_item = raw_item
                 
                 # if idx < (cfg.model.n_obs_steps * cfg.model.frame_gap + 100):

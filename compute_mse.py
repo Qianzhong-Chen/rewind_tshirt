@@ -13,7 +13,7 @@ from typing import List, Tuple, Optional
 # BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-09-03/01-31-18/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/eval_video/2025.09.03-01.31.45"
 # BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-09-03/13-44-00/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_gvl_sparse/eval_video/2025.09.03-13.44.20"
 # BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-09-04/16-59-37/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_vlc_sparse/eval_video/2025.09.04-17.00.06"
-BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-09-05/12-13-23/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_liv_sparse/eval_video/2025.09.05-12.13.39"
+BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-09-05/21-22-22/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_liv_sparse/eval_video/2025.09.05-21.22.48"
 
 def load_pair(ep_dir: Path) -> Optional[Tuple[np.ndarray, np.ndarray]]:
     # sm_path = ep_dir / "smoothed.npy"

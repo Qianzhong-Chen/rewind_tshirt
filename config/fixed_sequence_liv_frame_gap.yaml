@@ -86,8 +86,9 @@ cfg:
     raw_data_run_times: 36
     eval_frame_gap: 10
     # Dense
-    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-09-05/01-42-22/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_liv_sparse/checkpoints/reward_step_020000_loss_-17.970.pt"
+    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-09-05/13-08-01/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_liv_sparse/checkpoints/reward_step_030000_loss_-33.405.pt"
     # raw_data_dir: "/nfs_old/david_chen/dataset/real_eval/sz_03_0813"
-    raw_data_dir: "/nfs_old/david_chen/policy_rollout/hlm_40k_rollout"
+    # raw_data_dir: "/nfs_old/david_chen/policy_rollout/hlm_40k_rollout"
+    raw_data_dir: "/nfs_us/david_chen/pi0_rollout/hlm_40k_rollout"
 
     

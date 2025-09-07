@@ -224,6 +224,8 @@ def get_frames_indices(idx, n_obs_steps, frame_gap):
 
     return frames
 
+
+
 def get_frames_indices_dynamic(idx, n_obs_steps, frame_gap):
     """
     Generate frame indices for a sequence of length n_obs_steps+1 that ends at `idx`.
@@ -317,6 +319,69 @@ def get_frame_data_fast(path,
 
         tensor = torch.tensor(img, dtype=torch.float32, device=device).unsqueeze(0)  # (1,T+rewind,3,224,224)
         sequence_data['image_frames'][camera_name] = tensor
+
+    return sequence_data
+
+def get_frame_data_fast_liv(path,
+                   traj_joint_data, 
+                   idx, 
+                   n_obs_steps=2, 
+                   frame_gap=30, 
+                   max_rewind_steps=0, 
+                   camera_names=("top_camera-images-rgb",), 
+                   device='cuda:0'):
+    """
+    Exact same output as your original:
+    {
+        'state': FloatTensor [1, n_obs_steps+1+max_rewind_steps, joint_dim],
+        'image_frames': { cam: FloatTensor [1, n_obs_steps+1+max_rewind_steps, 3, 224, 224], ... }
+    }
+    Assumes your existing `get_frames_indices`, `resize_with_pad`, `convert_to_float32`.
+    """
+    # --- frame indices (unchanged) ---
+    sequence_data = {}
+    frames_indices = [0] * 4
+    
+    # --- images via decord, but keep exact post-processing (resize_with_pad -> convert_to_float32 -> NCHW -> pad -> unsqueeze) ---
+    sequence_data['image_frames'] = {}
+    for camera_name in camera_names:
+        video_path = str(Path(path) / f"{camera_name}.mp4")
+        vr = _get_vr(video_path)
+        total_video_frames = len(vr)
+        frames_indices = [0, idx, min(idx + frame_gap, total_video_frames - 1), total_video_frames - 1]
+
+        # match original edge handling: if any index too large, repeat last frame for all
+        if max(frames_indices) >= total_video_frames:
+            print(f"WARNING: frame index {max(frames_indices)} exceeds total frames {total_video_frames} in {video_path}")
+            safe_indices = [total_video_frames - 1] * (n_obs_steps + 1)
+        else:
+            safe_indices = frames_indices
+
+        # batched random access, RGB, (T, H, W, 3), uint8
+        batch = vr.get_batch(safe_indices)
+        img = batch.asnumpy()  # (T,H,W,3), uint8, RGB
+
+        # keep your exact preprocessing calls
+        img = convert_to_float32(resize_with_pad(img, 224, 224))  # expects (T,H,W,3); returns float32 in [0,1]
+
+        # NCHW
+        img = np.transpose(img, (0, 3, 1, 2))  # (T,3,224,224)
+
+        # pad rewind frames (zeros), same as before
+        if max_rewind_steps > 0:
+            padding_frames = np.zeros((max_rewind_steps, 3, 224, 224), dtype=np.float32)
+            img = np.concatenate((img, padding_frames), axis=0)
+
+        tensor = torch.tensor(img, dtype=torch.float32, device=device).unsqueeze(0)  # (1,T+rewind,3,224,224)
+        sequence_data['image_frames'][camera_name] = tensor
+
+    # --- joints (unchanged logic) ---
+    joint_data = np.array([traj_joint_data[i, :] for i in frames_indices], dtype=np.float32)
+    if max_rewind_steps > 0:
+        joint_padding = np.zeros((max_rewind_steps, joint_data.shape[1]), dtype=np.float32)
+        joint_data = np.concatenate((joint_data, joint_padding), axis=0)
+    sequence_data['state'] = torch.tensor(joint_data, dtype=torch.float32, device=device).unsqueeze(0)
+
 
     return sequence_data
 
