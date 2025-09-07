@@ -61,7 +61,8 @@ cfg:
     dropout: 0.1
     horizon: 8
     n_obs_steps: 8
-    max_rewind_steps: 4
+    # max_rewind_steps: 4
+    max_rewind_steps: 0
     frame_gap: 30
     state_dim: 14
     no_state: True
