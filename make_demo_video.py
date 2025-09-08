@@ -85,6 +85,77 @@ def draw_plot_frame(step: int, pred, gt, x_offset, width=448, height=448):
 
     return img
 
+# def draw_plot_frame_raw_data(step: int, pred, x_offset, width=448, height=448):
+#     fig, ax = plt.subplots(figsize=(width / 100, height / 100), dpi=100)  # ensures final image is 448x448
+
+#     timesteps = np.arange(len(pred)) + x_offset
+#     ax.plot(timesteps, pred, label='Predicted', linewidth=2)
+#     ax.axvline(x=step + x_offset, color='r', linestyle='--', linewidth=2)
+#     ax.set_title("Reward Model Prediction")
+#     ax.set_xlabel("Time Step")
+#     ax.set_ylabel("Reward")
+#     ax.legend()
+#     ax.grid(True)
+#     fig.tight_layout()
+
+#      # === Add Milestone Text ===
+#     current_pred = pred[step]
+#     text_y = ax.get_ylim()[1] * 0.9  # position near top
+
+#     # Sparse anno
+#     # if current_pred <= 1.0:
+#     #     ax.text(step + x_offset, text_y, "Grab the tshirt from the pile", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     # elif 1.0 <= current_pred < 2.0:
+#     #     ax.text(step + x_offset, text_y, "Move the tshirt to the center of the board", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     # elif 2.0 <= current_pred < 3.0:
+#     #     ax.text(step + x_offset, text_y, "Flatten the tshirt out", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     # elif 3.0 <= current_pred < 4.0:
+#     #     ax.text(step + x_offset, text_y, "Fold the tshirt", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     # elif 4.0 <= current_pred < 5.0:
+#     #     ax.text(step + x_offset, text_y, "Neatly place the folded tshirt to the corner", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     # else:
+#     #     ax.text(step + x_offset, text_y, "Task Finished", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+    
+#     # Dense anno
+#     annotation_list= [
+#             "grab crumpled tshirt and move to center",
+#             "flatten out the tshirt",
+#             "grab near side and fold one-third",
+#             "grab far side and fold into rectangle",
+#             "rotate the tshirt 90 degrees",
+#             "grab bottom and fold one-third",
+#             "grab two-third side and fold into square",
+#             "put folded tshirt into corner"
+#         ]
+#     if current_pred <= 1.0:
+#         ax.text(step + x_offset, text_y, "grab crumpled tshirt and move to center", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     elif 1.0 <= current_pred < 2.0:
+#         ax.text(step + x_offset, text_y, "flatten out the tshirt", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     elif 2.0 <= current_pred < 3.0:
+#         ax.text(step + x_offset, text_y, "grab near side and fold one-third", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     elif 3.0 <= current_pred < 4.0:
+#         ax.text(step + x_offset, text_y, "grab far side and fold into rectangle", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     elif 4.0 <= current_pred < 5.0:
+#         ax.text(step + x_offset, text_y, "rotate the tshirt 90 degrees", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     elif 5.0 <= current_pred < 6.0:
+#         ax.text(step + x_offset, text_y, "grab bottom and fold one-third", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     elif 6.0 <= current_pred < 7.0:
+#         ax.text(step + x_offset, text_y, "grab two-third side and fold into square", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     elif 7.0 <= current_pred < 8.0:
+#         ax.text(step + x_offset, text_y, "put folded tshirt into corner", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     else:
+#         ax.text(step + x_offset, text_y, "Task Finished", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+
+
+#     canvas = FigureCanvas(fig)
+#     canvas.draw()
+#     img = np.frombuffer(canvas.buffer_rgba(), dtype='uint8').copy()
+#     img = img.reshape(canvas.get_width_height()[::-1] + (4,))
+#     img = img[:, :, :3]  # get RGB
+#     plt.close(fig)
+
+#     return img
+
 def draw_plot_frame_raw_data(step: int, pred, x_offset, width=448, height=448):
     fig, ax = plt.subplots(figsize=(width / 100, height / 100), dpi=100)  # ensures final image is 448x448
 
@@ -382,7 +453,7 @@ def produce_video_raw_data(save_dir, left_video_path, middle_video_path, right_v
     output_clip = ImageSequenceClip(combined_frames, fps=frame_rate)
     output_clip.write_videofile(str(output_path), codec='libx264')
     
-def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, right_video_path, episode_num, annotation_list, x_offset=30, frame_gap=None):
+def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, right_video_path, episode_num, annotation_list=None, x_offset=30, frame_gap=None):
     # === CONFIGURATION ===
     save_dir = Path(save_dir)
     pred_path = save_dir / "pred.npy"

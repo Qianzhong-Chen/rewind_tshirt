@@ -7,16 +7,18 @@ import torch.nn.functional as F
 from torch.optim.lr_scheduler import SequentialLR, LinearLR, CosineAnnealingLR
 from tqdm import tqdm
 import wandb
-from lerobot.common.datasets.frame_gap_multi_stage_lerobot_dataset import FrameGapLeRobotDataset 
+from lerobot.common.datasets.frame_gap_multi_stage_lerobot_dataset_v2 import FrameGapLeRobotDataset 
 from data_utils import comply_lerobot_batch_multi_stage, get_valid_episodes, split_train_eval_episodes, comply_lerobot_batch_multi_stage_video_eval
 from train_utils import plot_episode_result, set_seed, save_ckpt, plot_pred_vs_gt, get_normalizer_from_calculated, plot_episode_result, plot_episode_result_raw_data
-from raw_data_utils import get_frame_num, get_frame_data, get_traj_data
+from raw_data_utils import get_frame_num, get_frame_data_fast, get_traj_data, normalize_sparse, normalize_dense
 from models.multi_stage_reward_net import RewardTransformer
 from models.multi_stage_estimate_net import StageTransformer
 from models.text_encoder import FrozenTextEncoder
 from models.vision_encoder import FrozenVisionEncoder
 from models.clip_encoder import FrozenCLIPEncoder
-from make_demo_video import produce_video, produce_video_raw_data
+from make_demo_video import produce_video, produce_video_raw_data_hybird
+from pred_smoother_hybird import RegressionConfidenceSmoother
+
 import torch.nn as nn
 import cv2
 import numpy as np
@@ -35,7 +37,10 @@ class RewindRewardWorkspace:
         print(f"[Init] Using device: {self.device}")
         set_seed(cfg.general.seed)
         self.camera_names = cfg.general.camera_names
-        self.save_dir = Path(f'{cfg.general.project_name}/{cfg.general.task_name}')
+        # TODO: temp fix for us05 saving
+        datetime_str = datetime.now().strftime("%Y-%m-%d/%H-%M-%S")
+        self.save_dir = Path(f'/nfs_us/david_chen/reward_model_ckpt/{datetime_str}/{cfg.general.project_name}/{cfg.general.task_name}')
+        # self.save_dir = Path(f'{cfg.general.project_name}/{cfg.general.task_name}')
         self.save_dir.mkdir(parents=True, exist_ok=True)
         print(f"[Init] Logging & ckpts to: {self.save_dir}")
 
@@ -609,6 +614,10 @@ class RewindRewardWorkspace:
     def eval_video(self):
         import random
         cfg = self.cfg
+        anno_type = cfg.model.anno_type # dataset annotation type
+        num_classes = cfg.model.num_classes
+        repo_id = cfg.general.repo_id
+        model_num_classes = 6 if anno_type == "dense" else 9 # dense trained model check with sparse set
         valid_episodes = get_valid_episodes(cfg.general.repo_id)
         dataset_val = FrameGapLeRobotDataset(repo_id=cfg.general.repo_id, 
                                                horizon=cfg.model.horizon, 
@@ -653,7 +662,8 @@ class RewindRewardWorkspace:
                                   dropout=cfg.model.dropout,
                                   max_seq_len=cfg.model.max_seq_len,
                                   num_cameras=len(self.camera_names),
-                                  dense_annotation=cfg.model.dense_annotation)
+                                  dense_annotation=cfg.model.dense_annotation
+                                  ).to(self.device)
         stage_model = StageTransformer(d_model=cfg.model.d_model, 
                                   vis_emb_dim=vis_dim, 
                                   text_emb_dim=txt_dim,
@@ -663,8 +673,9 @@ class RewindRewardWorkspace:
                                   dropout=cfg.model.dropout,
                                   max_seq_len=cfg.model.max_seq_len,
                                   num_cameras=len(self.camera_names),
-                                  num_classes=cfg.model.num_classes,
-                                  dense_annotation=cfg.model.dense_annotation)
+                                  num_classes=model_num_classes,
+                                  dense_annotation=cfg.model.dense_annotation
+                                  ).to(self.device)
 
         # Load checkpoints
         reward_ckpt = torch.load(reward_model_path, map_location=self.device)
@@ -691,15 +702,19 @@ class RewindRewardWorkspace:
             evaled_list.append(ep_index)
             start_idx = dataset_val.episode_data_index["from"][global_idx].item()
             end_idx = dataset_val.episode_data_index["to"][global_idx].item()
-            pred_ep_result = [0]
-            gt_ep_result = [0]
-            x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
-            # x_offset = 0
+            gt_ep_result = []
+            pred_ep_result = []
+            pred_ep_smoothed = []
+            pred_ep_conf = []
+            x_offset = 9
+            # x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
+            eval_frame_gap = cfg.eval.eval_frame_gap
+            smoother = RegressionConfidenceSmoother(value_range=(0.0, 1.0))
             print(f"[Eval Video] Evaluating episode_{ep_index}, progress: {i} / {cfg.eval.video_run_times}")
 
             # change to use tqdm
-            for idx in tqdm(range(start_idx, end_idx), desc=f"Processing episode {ep_index}"):
-                data_point = dataset_val.__getitem__(idx)
+            for idx in tqdm(range(start_idx, end_idx, eval_frame_gap), desc=f"Processing episode {ep_index}"):
+                data_point = dataset_val[idx]
                 batch = comply_lerobot_batch_multi_stage_video_eval(data_point, 
                                                                     camera_names=cfg.general.camera_names, 
                                                                     dense_annotation=cfg.model.dense_annotation)
@@ -714,18 +729,8 @@ class RewindRewardWorkspace:
                 lens = batch["lengths"].to(self.device)
                 state = batch["state"].to(self.device)
                 state = state_normalizer.normalize(state)
-                
-                # # DINO
-                # # img_emb = [vis_encoder(imgs).view(B, T, -1) for imgs in img_list]  
-                # # img_emb = torch.stack(img_emb, dim=1)
-                # imgs_all = torch.cat(img_list, dim=0)  # list of tensors (B*T, C, H, W) → (N*B*T, C, H, W)
-                # img_emb = vis_encoder(imgs_all)
-                # img_emb = img_emb.view(len(img_list), B, T, -1).permute(1, 0, 2, 3)
-                # lang_emb = text_encoder(lang_strs)
 
                 # CLIP
-                # img_emb = [clip_encoder.encode_image(imgs).view(B, T, -1) for imgs in img_list]
-                # img_emb = torch.stack(img_emb, dim=1)
                 imgs_all = torch.cat(img_list, dim=0)  # (N * B * T, C, H, W)
                 img_emb = clip_encoder.encode_image(imgs_all)  # (N * B * T, D)
                 img_emb = img_emb.view(len(img_list), B, T, -1).permute(1, 0, 2, 3)  # (B, N, T, D)
@@ -738,29 +743,43 @@ class RewindRewardWorkspace:
 
                 if cfg.model.no_state:
                     state = torch.zeros_like(state, device=self.device)
+                
                 stage_prob = stage_model(img_emb, lang_emb, state, lens).softmax(dim=-1)  # (B, T, num_classes)
                 stage_pred = stage_prob.argmax(dim=-1)  # (B, T)
+                stage_conf = stage_prob.gather(-1, stage_pred.unsqueeze(-1)).squeeze(-1)  # (B, T)
                 reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
-                pred = torch.clip(reward_pred + stage_pred.float(), 0, cfg.model.num_classes-1)  # (B, T)
-                
-                if abs(idx - start_idx) < (cfg.model.n_obs_steps * cfg.model.frame_gap + 100):
-                    smoothed_item = pred[0, cfg.model.n_obs_steps].item()
-                elif abs(idx - end_idx) < 100:
-                    smoothed_item = pred[0, cfg.model.n_obs_steps].item()
+                pred = torch.clip(reward_pred + stage_pred.float(), 0, num_classes-1)  # (B, T)
+                raw_item = pred[0, cfg.model.n_obs_steps].item()
+                if anno_type == "dense": # dense trained model check with sparse set
+                    raw_item_norm = normalize_sparse(raw_item)
                 else:
-                    smoothed_item = torch.mean(pred[0, 1:1+cfg.model.n_obs_steps]).item() 
-                smoothed_item = min(max(smoothed_item, pred_ep_result[-1]-0.0125), pred_ep_result[-1] + 0.0125)
-                pred_ep_result.append(smoothed_item)
-                gt_ep_result.append(trg[0, cfg.model.n_obs_steps].item())
+                    raw_item_norm = normalize_dense(raw_item)
+                
+                conf_val = stage_conf[0, cfg.model.n_obs_steps].item()
+                if idx >= (x_offset * eval_frame_gap):
+                    smoothed_item = smoother.update(raw_item_norm, conf_val)
+                else:
+                    smoothed_item = raw_item_norm
+                
+                pred_ep_result.append(raw_item_norm)
+                pred_ep_conf.append(conf_val)
+                pred_ep_smoothed.append(smoothed_item)
+                if anno_type == "sparse":
+                    gt_ep_result.append(normalize_dense(trg[0, cfg.model.n_obs_steps].item()))
+                else:
+                    gt_ep_result.append(normalize_sparse(trg[0, cfg.model.n_obs_steps].item()))
+
+                
 
             # save results
-            save_dir = plot_episode_result(ep_index, pred_ep_result, gt_ep_result, x_offset, rollout_save_dir)
+            save_dir = plot_episode_result(ep_index, pred_ep_smoothed, gt_ep_result, x_offset, rollout_save_dir, frame_gap=eval_frame_gap, ep_conf=pred_ep_conf)
             np.save(Path(save_dir) / "pred.npy", np.array(pred_ep_result))
             np.save(Path(save_dir) / "gt.npy", np.array(gt_ep_result))
+            np.save(Path(save_dir) / "smoothed.npy", np.array(pred_ep_smoothed))
             print(f"[Eval Video] episode_{ep_index} making video...")
-            left_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/{cfg.general.repo_id}/videos/chunk-000/left_camera-images-rgb")
-            middle_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/{cfg.general.repo_id}/videos/chunk-000/top_camera-images-rgb")
-            right_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/{cfg.general.repo_id}/videos/chunk-000/right_camera-images-rgb")
+            left_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/{repo_id}/videos/chunk-000/left_camera-images-rgb")
+            middle_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/{repo_id}/videos/chunk-000/top_camera-images-rgb")
+            right_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/{repo_id}/videos/chunk-000/right_camera-images-rgb")
             try:
                 produce_video(rollout_save_dir, left_video_dir, middle_video_dir, right_video_dir, ep_index, x_offset)
             except Exception as e:
@@ -772,14 +791,10 @@ class RewindRewardWorkspace:
         import random
         cfg = self.cfg
         state_normalizer = get_normalizer_from_calculated(cfg.general.state_norm_path, self.device)
-        
+        anno_type = cfg.model.anno_type # dataset annotation type
+        num_classes = cfg.model.num_classes
+        model_num_classes = 6 if anno_type == "dense" else 9 # dense trained model check with sparse set
 
-        # --- encoders ---
-        # # DINO
-        # vis_encoder = FrozenVisionEncoder(cfg.encoders.vision_ckpt, self.device)
-        # text_encoder = FrozenTextEncoder(cfg.encoders.text_ckpt, self.device)
-        # vis_dim = vis_encoder.model.config.hidden_size
-        # txt_dim = text_encoder.model.config.hidden_size
 
         # CLIP
         clip_encoder = FrozenCLIPEncoder(cfg.encoders.vision_ckpt, self.device)
@@ -813,7 +828,7 @@ class RewindRewardWorkspace:
                                   dropout=cfg.model.dropout,
                                   max_seq_len=cfg.model.max_seq_len,
                                   num_cameras=len(self.camera_names),
-                                  num_classes=cfg.model.num_classes,
+                                  num_classes=model_num_classes,
                                   dense_annotation=cfg.model.dense_annotation)
 
         # Load checkpoints
@@ -834,7 +849,6 @@ class RewindRewardWorkspace:
         OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
 
         
-        x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
         data_dir = cfg.eval.raw_data_dir
         run_times = cfg.eval.raw_data_run_times
         # Get all valid episode paths
@@ -855,14 +869,20 @@ class RewindRewardWorkspace:
 
         for i in range(run_times):
             data_path = eval_list[i]
-            pred_ep_result = [0]
-            # randomly select 
+            gt_ep_result = []
+            pred_ep_result = []
+            pred_ep_smoothed = []
+            pred_ep_conf = []
+            x_offset = 0
+            # x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
+            eval_frame_gap = cfg.eval.eval_frame_gap
             ep_index = os.path.basename(data_path)
             frame_num = get_frame_num(data_path)
+            smoother = RegressionConfidenceSmoother(value_range=(0.0, 1.0))
             traj_joint_data = get_traj_data(data_path)
             print(f"[EVAL_RAW]: process {i+1}/{run_times} episode: {ep_index}")
-            for idx in tqdm(range(frame_num), desc=f"Processing data"):
-                batch = get_frame_data(path=data_path, 
+            for idx in tqdm(range(0, frame_num, eval_frame_gap), desc=f"Processing data"):
+                batch = get_frame_data_fast(path=data_path, 
                                     traj_joint_data=traj_joint_data, 
                                     idx=idx,
                                     n_obs_steps=cfg.model.n_obs_steps,
@@ -870,6 +890,7 @@ class RewindRewardWorkspace:
                                     max_rewind_steps=cfg.model.max_rewind_steps,
                                     camera_names=cfg.general.camera_names,
                                     device=self.device)
+                
                 
                 B, T = batch["image_frames"][self.camera_names[0]].shape[:2]
                 img_list = []
@@ -882,17 +903,7 @@ class RewindRewardWorkspace:
                 state = batch["state"].to(self.device)
                 state = state_normalizer.normalize(state)
                 
-                # # DINO
-                # # img_emb = [vis_encoder(imgs).view(B, T, -1) for imgs in img_list]  
-                # # img_emb = torch.stack(img_emb, dim=1)
-                # imgs_all = torch.cat(img_list, dim=0)  # list of tensors (B*T, C, H, W) → (N*B*T, C, H, W)
-                # img_emb = vis_encoder(imgs_all)
-                # img_emb = img_emb.view(len(img_list), B, T, -1).permute(1, 0, 2, 3)
-                # lang_emb = text_encoder(lang_strs)
-
                 # CLIP
-                # img_emb = [clip_encoder.encode_image(imgs).view(B, T, -1) for imgs in img_list]
-                # img_emb = torch.stack(img_emb, dim=1)
                 imgs_all = torch.cat(img_list, dim=0)  # (N * B * T, C, H, W)
                 img_emb = clip_encoder.encode_image(imgs_all)  # (N * B * T, D)
                 img_emb = img_emb.view(len(img_list), B, T, -1).permute(1, 0, 2, 3)  # (B, N, T, D)
@@ -907,38 +918,38 @@ class RewindRewardWorkspace:
                     state = torch.zeros_like(state, device=self.device)
                 stage_prob = stage_model(img_emb, lang_emb, state, lens).softmax(dim=-1)  # (B, T, num_classes)
                 stage_pred = stage_prob.argmax(dim=-1)  # (B, T)
+                stage_conf = stage_prob.gather(-1, stage_pred.unsqueeze(-1)).squeeze(-1)  # (B, T)
                 reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
                 pred = torch.clip(reward_pred + stage_pred.float(), 0, cfg.model.num_classes-1)  # (B, T)
-                
-                if idx < (cfg.model.n_obs_steps * cfg.model.frame_gap + 100):
-                    smoothed_item = pred[0, cfg.model.n_obs_steps].item()
-                elif abs(frame_num - idx) < 100:
-                    smoothed_item = pred[0, cfg.model.n_obs_steps].item()
+                raw_item = pred[0, cfg.model.n_obs_steps].item()
+                if anno_type == "dense": # dense trained model check with sparse set
+                    raw_item_norm = normalize_sparse(raw_item)
                 else:
-                    smoothed_item = torch.mean(pred[0, 1:1+cfg.model.n_obs_steps]).item() 
-                smoothed_item = min(max(smoothed_item, pred_ep_result[-1]-0.0125), pred_ep_result[-1] + 0.0125)
+                    raw_item_norm = normalize_dense(raw_item)
                 
-                # if idx < (cfg.model.n_obs_steps * cfg.model.frame_gap + 100):
-                #     smoothed_item = pred[0, cfg.model.n_obs_steps].item()
-                # elif abs(frame_num - idx) < 100:
-                #     smoothed_item = pred[0, cfg.model.n_obs_steps].item()
-                # else:
-                #     smoothed_item = torch.mean(pred[0, 5:1+cfg.model.n_obs_steps]).item() 
-                # smoothed_item = min(max(smoothed_item, pred_ep_result[-1]-0.02), pred_ep_result[-1] + 0.02)
+                conf_val = stage_conf[0, cfg.model.n_obs_steps].item()
+                if idx >= (x_offset * eval_frame_gap):
+                    smoothed_item = smoother.update(raw_item_norm, conf_val)
+                else:
+                    smoothed_item = raw_item_norm
                 
-                pred_ep_result.append(smoothed_item)
-                
+                pred_ep_result.append(raw_item_norm)
+                pred_ep_conf.append(conf_val)
+                pred_ep_smoothed.append(smoothed_item)
+                                
 
             # save results
-            save_dir = plot_episode_result_raw_data(ep_index, pred_ep_result, x_offset, rollout_save_dir)
+            save_dir = plot_episode_result_raw_data(ep_index, pred_ep_result, x_offset, rollout_save_dir, eval_frame_gap, pred_ep_conf, pred_ep_smoothed)
             np.save(Path(save_dir) / "pred.npy", np.array(pred_ep_result))
+            np.save(Path(save_dir) / "conf.npy", np.array(pred_ep_conf))
+            np.save(Path(save_dir) / "smoothed.npy", np.array(pred_ep_smoothed))
 
             print(f"[Eval Video] episode_{ep_index} making video...")
             left_video_path = Path(f"{data_path}/left_camera-images-rgb.mp4")
             middle_video_path = Path(f"{data_path}/top_camera-images-rgb.mp4")
             right_video_path = Path(f"{data_path}/right_camera-images-rgb.mp4")
             try:
-                produce_video_raw_data(save_dir, left_video_path, middle_video_path, right_video_path, ep_index, x_offset)
+                produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, right_video_path, ep_index, x_offset=x_offset, frame_gap=eval_frame_gap)
             except Exception as e:
                 print(f"[Eval Video] episode_{ep_index} video production failed: {e}")
             
@@ -1086,7 +1097,7 @@ class RewindRewardWorkspace:
                 state = state_normalizer.normalize(state)
 
                 # eval_raw
-                raw_batch = get_frame_data(path=data_path, 
+                raw_batch = get_frame_data_fast(path=data_path, 
                                     traj_joint_data=traj_joint_data, 
                                     idx=idx,
                                     n_obs_steps=cfg.model.n_obs_steps,
