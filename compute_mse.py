@@ -14,10 +14,14 @@ from typing import List, Tuple, Optional
 # BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-09-03/13-44-00/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_gvl_sparse/eval_video/2025.09.03-13.44.20"
 # BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-09-04/16-59-37/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_vlc_sparse/eval_video/2025.09.04-17.00.06"
 BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-09-05/21-22-22/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_liv_sparse/eval_video/2025.09.05-21.22.48"
+BASE_DIR = "/nfs_us/david_chen/reward_model_ckpt/tshirt_folding_ablation/2025-09-08/12-48-57/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_dense_annotation/eval_video/2025.09.08-12.49.11"
+BASE_DIR = "/nfs_us/david_chen/reward_model_ckpt/tshirt_folding_ablation/2025-09-08/13-34-05/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_dense_annotation/eval_video/2025.09.08-13.34.20"
+BASE_DIR = "/nfs_us/david_chen/reward_model_ckpt/2025-09-08/15-55-46/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/eval_video/2025.09.08-15.56.12"
+
 
 def load_pair(ep_dir: Path) -> Optional[Tuple[np.ndarray, np.ndarray]]:
-    # sm_path = ep_dir / "smoothed.npy"
-    sm_path = ep_dir / "pred.npy"
+    sm_path = ep_dir / "smoothed.npy"
+    # sm_path = ep_dir / "pred.npy"
     gt_path = ep_dir / "gt.npy"
     if not (sm_path.exists() and gt_path.exists()):
         return None
@@ -77,6 +81,7 @@ def main():
         sm, gt = pair
         ep_mse = mse(sm, gt)
         per_ep.append((ep.name, ep_mse, len(sm)))
+        print(f"{ep.name}  MSE = {ep_mse:.6f}")
         total_sse += float(np.sum((sm - gt) ** 2))
         total_count += len(sm)
         # print(f"{ep.name:>16}  MSE = {ep_mse:.6f}  (N={len(sm)})")

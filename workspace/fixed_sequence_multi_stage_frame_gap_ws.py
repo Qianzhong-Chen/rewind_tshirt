@@ -39,7 +39,7 @@ class RewindRewardWorkspace:
         self.camera_names = cfg.general.camera_names
         # TODO: temp fix for us05 saving
         datetime_str = datetime.now().strftime("%Y-%m-%d/%H-%M-%S")
-        self.save_dir = Path(f'/nfs_us/david_chen/reward_model_ckpt/{datetime_str}/{cfg.general.project_name}/{cfg.general.task_name}')
+        self.save_dir = Path(f'/nfs_us/david_chen/reward_model_ckpt/tshirt_folding_ablation/{datetime_str}/{cfg.general.project_name}/{cfg.general.task_name}')
         # self.save_dir = Path(f'{cfg.general.project_name}/{cfg.general.task_name}')
         self.save_dir.mkdir(parents=True, exist_ok=True)
         print(f"[Init] Logging & ckpts to: {self.save_dir}")
@@ -422,7 +422,7 @@ class RewindRewardWorkspace:
                 
 
             # --- clear memory ---
-            del img_list, imgs_all, img_emb, lang_emb, stage_pred, reward_pred, pred, stage_prob, stage_prob_np
+            del img_list, imgs_all, img_emb, lang_emb, stage_pred, reward_pred, stage_prob, stage_prob_np
             torch.cuda.empty_cache()
 
 
@@ -649,8 +649,12 @@ class RewindRewardWorkspace:
 
         # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_035000_loss_0.018.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_035000_loss_0.089.pt"
+       
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_015000_loss_0.033.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_015000_loss_0.167.pt"
+        
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.016.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.114.pt"
 
         # Create model instances
         reward_model = RewardTransformer(d_model=cfg.model.d_model, 
@@ -750,7 +754,7 @@ class RewindRewardWorkspace:
                 reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
                 pred = torch.clip(reward_pred + stage_pred.float(), 0, num_classes-1)  # (B, T)
                 raw_item = pred[0, cfg.model.n_obs_steps].item()
-                if anno_type == "dense": # dense trained model check with sparse set
+                if anno_type == "dense": # dense trained model validate with sparse set
                     raw_item_norm = normalize_sparse(raw_item)
                 else:
                     raw_item_norm = normalize_dense(raw_item)
@@ -764,7 +768,7 @@ class RewindRewardWorkspace:
                 pred_ep_result.append(raw_item_norm)
                 pred_ep_conf.append(conf_val)
                 pred_ep_smoothed.append(smoothed_item)
-                if anno_type == "sparse":
+                if anno_type == "dense": #only data processing, follows the dataset setting
                     gt_ep_result.append(normalize_dense(trg[0, cfg.model.n_obs_steps].item()))
                 else:
                     gt_ep_result.append(normalize_sparse(trg[0, cfg.model.n_obs_steps].item()))
@@ -805,8 +809,12 @@ class RewindRewardWorkspace:
 
         # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_035000_loss_0.018.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_035000_loss_0.089.pt"
+        
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_015000_loss_0.033.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_015000_loss_0.167.pt"
+        
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.016.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.114.pt"
 
         # Create model instances
         reward_model = RewardTransformer(d_model=cfg.model.d_model, 
