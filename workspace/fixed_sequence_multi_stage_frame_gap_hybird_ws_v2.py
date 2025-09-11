@@ -674,10 +674,12 @@ class RewindRewardWorkspace:
         rollout_save_dir.mkdir(parents=True, exist_ok=True)
         OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
         evaled_list = []
-
+        # ep_to_run = [21, 101, 151, 263, 435, 402]
+        ep_to_run = [21, 101]
+        
         for i in range(cfg.eval.video_run_times):
-            ep_index = random.choice([idx for idx in valid_episodes if idx not in evaled_list])
-            # ep_index = valid_episodes[i]
+            ep_index = ep_to_run[i]
+            # ep_index = random.choice([idx for idx in valid_episodes if idx not in evaled_list])
             global_idx = valid_episodes.index(ep_index)
             evaled_list.append(ep_index)
             start_idx = dataset_val.episode_data_index["from"][global_idx].item()
@@ -686,7 +688,7 @@ class RewindRewardWorkspace:
             pred_ep_result = []
             pred_ep_smoothed = []
             pred_ep_conf = []
-            x_offset = 9
+            x_offset = 0
             # x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
             eval_frame_gap = cfg.eval.eval_frame_gap
             smoother = RegressionConfidenceSmoother(value_range=(0.0, 1.0))
@@ -757,10 +759,11 @@ class RewindRewardWorkspace:
             left_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/{repo_id}/videos/chunk-000/left_camera-images-rgb")
             middle_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/{repo_id}/videos/chunk-000/top_camera-images-rgb")
             right_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/{repo_id}/videos/chunk-000/right_camera-images-rgb")
-            try:
-                produce_video(rollout_save_dir, left_video_dir, middle_video_dir, right_video_dir, ep_index, x_offset)
-            except Exception as e:
-                print(f"[Eval Video] episode_{ep_index} video production failed: {e}")
+            # try:
+            #     produce_video(rollout_save_dir, left_video_dir, middle_video_dir, right_video_dir, ep_index, x_offset, frame_gap=eval_frame_gap)
+            # except Exception as e:
+            #     print(f"[Eval Video] episode_{ep_index} video production failed: {e}")
+            produce_video(rollout_save_dir, left_video_dir, middle_video_dir, right_video_dir, ep_index, x_offset=x_offset, frame_gap=eval_frame_gap)
             print(f"[Eval Video] episode_{ep_index} results saved to: {save_dir}, progress: {i+1} / {cfg.eval.video_run_times}")
 
 

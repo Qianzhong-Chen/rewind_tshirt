@@ -32,7 +32,10 @@ class RewindRewardWorkspace:
         print(f"[Init] Using device: {self.device}")
         set_seed(cfg.general.seed)
         self.camera_names = cfg.general.camera_names
-        self.save_dir = Path(f'{cfg.general.project_name}/{cfg.general.task_name}')
+        # self.save_dir = Path(f'{cfg.general.project_name}/{cfg.general.task_name}')
+        # TODO: temp fix for us05 saving
+        datetime_str = datetime.now().strftime("%Y-%m-%d/%H-%M-%S")
+        self.save_dir = Path(f'/nfs_us/david_chen/reward_model_ckpt/{datetime_str}/{cfg.general.project_name}/{cfg.general.task_name}')
         self.save_dir.mkdir(parents=True, exist_ok=True)
         print(f"[Init] Logging & ckpts to: {self.save_dir}")
 
@@ -529,10 +532,11 @@ class RewindRewardWorkspace:
         rollout_save_dir.mkdir(parents=True, exist_ok=True)
         OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
         evaled_list = []
+        ep_to_run = [21, 101]
 
         for i in range(cfg.eval.video_run_times):
-            ep_index = random.choice([idx for idx in valid_episodes if idx not in evaled_list])
-            # ep_index = valid_episodes[i]
+            ep_index = ep_to_run[i]
+            # ep_index = random.choice([idx for idx in valid_episodes if idx not in evaled_list])
             global_idx = valid_episodes.index(ep_index)
             evaled_list.append(ep_index)
             start_idx = dataset_val.episode_data_index["from"][global_idx].item()
@@ -540,7 +544,7 @@ class RewindRewardWorkspace:
             gt_ep_result = []
             pred_ep_result = []
             pred_ep_smoothed = []
-            x_offset = 9
+            x_offset = 0
             # x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
             eval_frame_gap = cfg.eval.eval_frame_gap
             print(f"[Eval Video] Evaluating episode_{ep_index}, progress: {i} / {cfg.eval.video_run_times}")
@@ -598,7 +602,7 @@ class RewindRewardWorkspace:
             middle_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/{repo_id}/videos/chunk-000/top_camera-images-rgb")
             right_video_dir = Path(f"/home/david_chen/.cache/huggingface/lerobot/{repo_id}/videos/chunk-000/right_camera-images-rgb")
             try:
-                produce_video(rollout_save_dir, left_video_dir, middle_video_dir, right_video_dir, ep_index, x_offset)
+                produce_video(rollout_save_dir, left_video_dir, middle_video_dir, right_video_dir, ep_index,  x_offset=x_offset, frame_gap=eval_frame_gap)
             except Exception as e:
                 print(f"[Eval Video] episode_{ep_index} video production failed: {e}")
             print(f"[Eval Video] episode_{ep_index} results saved to: {save_dir}, progress: {i+1} / {cfg.eval.video_run_times}")

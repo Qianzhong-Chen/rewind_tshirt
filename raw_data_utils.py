@@ -9,17 +9,31 @@ from decord import VideoReader, cpu
 
 DATA_PATH = "/nfs_old/david_chen/dataset/tshirt_yam_200_0718/folding_tshirt/episode_z_zFIjhMduwurhFLtp01MJYJv25UttTH9ocB7q9xQic.npy.mp4"
 
+# def normalize_sparse(x: float) -> float:
+#     if 0 <= x < 1:
+#         return 0.0 + (x - 0) / (1 - 0) * (0.05 - 0.0)
+#     elif 1 <= x < 2:
+#         return 0.05 + (x - 1) / (2 - 1) * (0.1 - 0.05)
+#     elif 2 <= x < 3:
+#         return 0.1 + (x - 2) / (3 - 2) * (0.3 - 0.1)
+#     elif 3 <= x < 4:
+#         return 0.3 + (x - 3) / (4 - 3) * (0.9 - 0.3)
+#     elif 4 <= x <= 5:
+#         return 0.9 + (x - 4) / (5 - 4) * (1.0 - 0.9)
+#     else:
+#         raise ValueError("x must be in range [0, 5]")
+
 def normalize_sparse(x: float) -> float:
     if 0 <= x < 1:
         return 0.0 + (x - 0) / (1 - 0) * (0.05 - 0.0)
     elif 1 <= x < 2:
         return 0.05 + (x - 1) / (2 - 1) * (0.1 - 0.05)
     elif 2 <= x < 3:
-        return 0.1 + (x - 2) / (3 - 2) * (0.3 - 0.1)
+        return 0.1 + (x - 2) / (3 - 2) * (0.4 - 0.1)
     elif 3 <= x < 4:
-        return 0.3 + (x - 3) / (4 - 3) * (0.9 - 0.3)
+        return 0.4 + (x - 3) / (4 - 3) * (0.8 - 0.4)
     elif 4 <= x <= 5:
-        return 0.9 + (x - 4) / (5 - 4) * (1.0 - 0.9)
+        return 0.8 + (x - 4) / (5 - 4) * (1.0 - 0.8)
     else:
         raise ValueError("x must be in range [0, 5]")
     
