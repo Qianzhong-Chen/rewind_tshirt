@@ -3,7 +3,7 @@ _target_: workspace.fixed_sequence_vlc_frame_gap_ws.RewindRewardWorkspace
 cfg:
   general:
     # dataset specific
-    project_name: "rewind_reward_fixed_seq_model_frame_gap_multi_stage"
+    project_name: "reward_model"
     task_name: "unload_dish_vlc_sparse"
     repo_id: Qianzhong-Chen/yam_unload_dish_reward_0911
     state_norm_path: "/home/david_chen/rewind_tshirt/assets/fold_tshirt.json"

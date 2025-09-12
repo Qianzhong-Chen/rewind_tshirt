@@ -3,7 +3,7 @@ _target_: workspace.fixed_sequence_multi_stage_frame_gap_hybird_ws.RewindRewardW
 cfg:
   general:
     # dataset specific
-    project_name: "rewind_reward_fixed_seq_model_frame_gap_multi_stage"
+    project_name: "reward_model"
     task_name: "fold_tshirt_hybird"
    
     # repo_id: Qianzhong-Chen/tshirt_reward_anno_0717 # 300 dataset, combine yam and arx
@@ -113,7 +113,7 @@ cfg:
     video_run_times: 20 # number of episodes to evaluate in video
     raw_data_run_times: 17
     eval_frame_gap: 10
-    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-16/08-14-36/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/checkpoints"
+    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-16/08-14-36/reward_model/fold_tshirt_hybird/checkpoints"
 
     
     # # Sparse

@@ -8,15 +8,7 @@ import numpy as np
 from typing import List, Tuple, Optional
 
 # >>> Hardcoded path <<<
-# BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-08-28/07-05-01/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_regression_sparse/eval_video/2025.08.28-07.05.20"
-# BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-08-28/07-09-50/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/eval_video/2025.08.28-07.10.12"
-# BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-09-03/01-31-18/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/eval_video/2025.09.03-01.31.45"
-# BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-09-03/13-44-00/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_gvl_sparse/eval_video/2025.09.03-13.44.20"
-# BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-09-04/16-59-37/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_vlc_sparse/eval_video/2025.09.04-17.00.06"
-BASE_DIR = "/home/david_chen/rewind_tshirt/outputs/2025-09-05/21-22-22/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_liv_sparse/eval_video/2025.09.05-21.22.48"
-BASE_DIR = "/nfs_us/david_chen/reward_model_ckpt/tshirt_folding_ablation/2025-09-08/12-48-57/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_dense_annotation/eval_video/2025.09.08-12.49.11"
-BASE_DIR = "/nfs_us/david_chen/reward_model_ckpt/tshirt_folding_ablation/2025-09-08/13-34-05/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_dense_annotation/eval_video/2025.09.08-13.34.20"
-BASE_DIR = "/nfs_us/david_chen/reward_model_ckpt/2025-09-08/15-55-46/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/eval_video/2025.09.08-15.56.12"
+BASE_DIR = ""
 
 
 def load_pair(ep_dir: Path) -> Optional[Tuple[np.ndarray, np.ndarray]]:
