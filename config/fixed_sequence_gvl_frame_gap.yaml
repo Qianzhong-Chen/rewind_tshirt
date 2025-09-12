@@ -4,10 +4,9 @@ cfg:
   general:
     # dataset specific
     project_name: "rewind_reward_fixed_seq_model_frame_gap_multi_stage"
-    task_name: "fold_tshirt_gvl_sparse"
+    task_name: "unload_dish_gvl"
    
-    repo_id: Qianzhong-Chen/tshirt_reward_yam_only_multi_0804 
-    # repo_id: Qianzhong-Chen/tshirt_reward_hlm_dense_0812
+    repo_id: Qianzhong-Chen/yam_unload_dish_reward_0911 
     state_norm_path: "/home/david_chen/rewind_tshirt/assets/fold_tshirt.json"
     camera_names:  [top_camera-images-rgb]
     seed: 42
@@ -46,21 +45,18 @@ cfg:
     n_heads: 12
     dropout: 0.1
     horizon: 8
-    n_obs_steps: 12
+    n_obs_steps: 6
     state_dim: 14
     no_state: True
     dense_annotation: False # check the rule inside the dataset class to allign with progress
     resume_training: False
-    model_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-26/09-59-56/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_regression_sparse/checkpoints/reward_step_040000_loss_0.007.pt"
+    model_path: ""
 
     # Sparse anno
-    num_classes: 6 # num_classes = num_stage
+    num_classes: 3 # num_classes = num_stage 
     annotation_list: [
-            "grab crumpled tshirt from pile", 
-            "move the tshirt to center",
-            "Flatten the tshirt out",
-            "Fold the tshirt",
-            "Neatly place the folded tshirt to the corner",
+        "grab the dish",
+        "place the dish",
     ]
     
 
@@ -79,7 +75,7 @@ cfg:
     eval_every: 1        # epochs
     save_every: 5_000     # steps
     val_portion: 0.1     # fraction of episodes for validation
-    rollout_every: 1     # epoch
+    rollout_every: 10     # epoch
     rollout_steps: 10    # steps per rollout
 
   eval:
@@ -88,8 +84,7 @@ cfg:
     raw_data_run_times: 36
     eval_frame_gap: 10
     # Dense
-    ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-29/07-54-56/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_gvl_sparse/checkpoints/reward_step_080000_loss_0.049.pt"
-    # raw_data_dir: "/nfs_old/david_chen/dataset/real_eval/sz_03_0813"
-    raw_data_dir: "/nfs_old/david_chen/policy_rollout/hlm_40k_rollout"
+    ckpt_path: ""
+    raw_data_dir: ""
 
     

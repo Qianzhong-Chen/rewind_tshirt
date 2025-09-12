@@ -328,7 +328,7 @@ def draw_overview_panel(frames: list[np.ndarray],
     Saves figure as a PDF with Times New Roman text.
     Also returns the rendered RGB array.
     """
-    import matplotlib as mpl
+    
 
     
     T = len(frames)
@@ -336,10 +336,11 @@ def draw_overview_panel(frames: list[np.ndarray],
         raise ValueError("Not enough frames/reward to build overview panel.")
 
     # --- SET FONT TO TIMES NEW ROMAN ---
-    mpl.rcParams['font.family'] = 'serif'
-    mpl.rcParams['font.serif'] = ['Times New Roman']
-    mpl.rcParams['font.size'] = 42
-    mpl.rcParams['pdf.fonttype'] = 42  # embed fonts in PDF
+    # import matplotlib as mpl
+    # mpl.rcParams['font.family'] = 'serif'
+    # mpl.rcParams['font.serif'] = ['Times New Roman']
+    # mpl.rcParams['font.size'] = 42
+    # mpl.rcParams['pdf.fonttype'] = 42  # embed fonts in PDF
     
     # frame picks (0-based)
     idxs = [min(4, T-1), max(0, min(T//4, T-1)),
