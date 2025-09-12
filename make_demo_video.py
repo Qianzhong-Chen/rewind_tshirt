@@ -349,7 +349,7 @@ def draw_overview_panel(frames: list[np.ndarray],
     thumbs = [center_crop_to_848x480(frames[i]) for i in idxs]
 
     # time axis (sec)
-    t = np.arange(len(reward), dtype=float) / float(frame_rate)
+    t = np.arange(len(reward), dtype=float) / float(frame_rate) * 10
 
     # --- Figure/layout ---
     total_h_units = 1.0 + 1.5
