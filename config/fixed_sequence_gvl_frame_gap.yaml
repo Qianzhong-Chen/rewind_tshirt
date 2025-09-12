@@ -5,7 +5,6 @@ cfg:
     # dataset specific
     project_name: "rewind_reward_fixed_seq_model_frame_gap_multi_stage"
     task_name: "unload_dish_gvl"
-   
     repo_id: Qianzhong-Chen/yam_unload_dish_reward_0911 
     state_norm_path: "/home/david_chen/rewind_tshirt/assets/fold_tshirt.json"
     camera_names:  [top_camera-images-rgb]

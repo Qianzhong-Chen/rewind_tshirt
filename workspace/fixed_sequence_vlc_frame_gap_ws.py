@@ -250,6 +250,7 @@ class RewindRewardWorkspace:
                         state = torch.zeros_like(state, device=self.device)
                     reward_pred = reward_model(img_emb, lang_emb, state, lens)
                     reward_loss, info = vlc_loss(reward_pred, lens)
+                    reward_loss = reward_loss + F.mse_loss(reward_pred, trg, reduction="mean")
 
                     reward_optimizer.zero_grad()
                     reward_loss.backward()
