@@ -11,7 +11,7 @@ from lerobot.common.datasets.frame_gap_multi_stage_lerobot_dataset_v2 import Fra
 from data_utils import comply_lerobot_batch_multi_stage, get_valid_episodes, split_train_eval_episodes, comply_lerobot_batch_multi_stage_video_eval
 from train_utils import plot_episode_result, set_seed, save_ckpt, plot_pred_vs_gt, get_normalizer_from_calculated, plot_episode_result, plot_episode_result_raw_data
 from raw_data_utils import get_frame_num, get_frame_data_fast, get_traj_data, normalize_sparse, normalize_dense
-from models.multi_stage_reward_net import RewardTransformer
+from models.multi_stage_reward_net_v2 import RewardTransformer
 from models.multi_stage_estimate_net import StageTransformer
 from models.text_encoder import FrozenTextEncoder
 from models.vision_encoder import FrozenVisionEncoder
@@ -39,11 +39,24 @@ class RewindRewardWorkspace:
         self.camera_names = cfg.general.camera_names
         # TODO: temp fix for us05 saving
         datetime_str = datetime.now().strftime("%Y-%m-%d/%H-%M-%S")
-        self.save_dir = Path(f'/nfs_us/david_chen/reward_model_ckpt/tshirt_folding_ablation/{datetime_str}/{cfg.general.project_name}/{cfg.general.task_name}')
+        self.save_dir = Path(f'/nfs_us/david_chen/reward_model_ckpt/dish_unloading/{datetime_str}/{cfg.general.project_name}/{cfg.general.task_name}')
         # self.save_dir = Path(f'{cfg.general.project_name}/{cfg.general.task_name}')
         self.save_dir.mkdir(parents=True, exist_ok=True)
         print(f"[Init] Logging & ckpts to: {self.save_dir}")
 
+    def gen_stage_emb(self, cfg, trg):
+        """
+        Returns stage_onehot with a modality dim (B, 1, T, C).
+        """
+        # integer part of float targets -> [0, C-1]
+        idx = trg.long().clamp(min=0, max=cfg.model.num_classes - 1)   # (B, T)
+
+        C = cfg.model.num_classes
+        # identity-lookup one-hot
+        stage_onehot = torch.eye(C, device=trg.device)[idx]            # (B, T, C)
+        stage_onehot = stage_onehot.unsqueeze(1)                       # (B, 1, T, C)
+        return stage_onehot
+    
     def train(self):
         cfg = self.cfg
         OmegaConf.save(cfg, self.save_dir / "config.yaml")
@@ -225,7 +238,16 @@ class RewindRewardWorkspace:
                     if cfg.model.no_state:
                         state = torch.zeros_like(state, device=self.device)
                     stage_pred = stage_model(img_emb, lang_emb, state, lens)  # (B, N, T, num_classes)
-                    reward_pred = reward_model(img_emb, lang_emb, state, lens)
+                    
+                    if torch.rand(1).item() < 0.5:
+                        # Mode 1: ground truth trg → one-hot
+                        stage_emb = self.gen_stage_emb(cfg, trg)
+                        reward_pred = reward_model(img_emb, lang_emb, state, lens, stage_emb)
+                    else:
+                        # Mode 2: estimated stage distribution → "soft one-hot"
+                        stage_prob = stage_pred.softmax(dim=-1).detach()               # (B,T,num_classes)
+                        stage_emb = stage_prob.unsqueeze(1)                            # (B,1,T,num_classes)
+                        reward_pred = reward_model(img_emb, lang_emb, state, lens, stage_emb)
 
                     stage_loss = F.cross_entropy(stage_pred.view(-1, cfg.model.num_classes), gt_stage.view(-1), reduction="mean")
                     reward_loss = F.mse_loss(reward_pred, gt_sub_reward, reduction="mean")
@@ -311,10 +333,14 @@ class RewindRewardWorkspace:
 
                         if cfg.model.no_state:
                             state = torch.zeros_like(state, device=self.device)
-                        stage_pred = stage_model(img_emb, lang_emb, state, lens)  # (B, T, num_classes)
-                        reward_pred = reward_model(img_emb, lang_emb, state, lens)
+                        
+                        stage_prob = stage_model(img_emb, lang_emb, state, lens)  # (B, T, num_classes)
+                        stage_prob = stage_prob.softmax(dim=-1).detach()               # (B,T,num_classes)
+                        stage_emb = stage_prob.unsqueeze(1)                            # (B,1,T,num_classes)
+                        reward_pred = reward_model(img_emb, lang_emb, state, lens, stage_emb)
 
-                        stage_loss = F.cross_entropy(stage_pred.view(-1, cfg.model.num_classes), gt_stage.view(-1), reduction="mean")
+
+                        stage_loss = F.cross_entropy(stage_prob.view(-1, cfg.model.num_classes), gt_stage.view(-1), reduction="mean")
                         reward_loss = F.mse_loss(reward_pred, gt_sub_reward, reduction="mean")
                         total_loss += stage_loss.item() + reward_loss.item()
                         num += 1
@@ -373,7 +399,9 @@ class RewindRewardWorkspace:
                             state = torch.zeros_like(state, device=self.device)
                         stage_prob = stage_model(img_emb, lang_emb, state, lens).softmax(dim=-1)  # (B, T, num_classes)
                         stage_pred = stage_prob.argmax(dim=-1)  # (B, T)
-                        reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
+                        stage_emb = stage_prob.unsqueeze(1)                            # (B,1,T,num_classes)
+                        reward_pred = reward_model(img_emb, lang_emb, state, lens, stage_emb)
+
                         pred = torch.clip(reward_pred + stage_pred.float(), 0, cfg.model.num_classes-1)  # (B, T)
 
                         length = int(lens[0].item())
@@ -422,7 +450,6 @@ class RewindRewardWorkspace:
                 
 
             # --- clear memory ---
-            del img_list, imgs_all, img_emb, lang_emb, stage_pred, reward_pred, stage_prob, stage_prob_np
             torch.cuda.empty_cache()
 
 
@@ -566,7 +593,8 @@ class RewindRewardWorkspace:
                     state = torch.zeros_like(state, device=self.device)
                 stage_prob = stage_model(img_emb, lang_emb, state, lens).softmax(dim=-1)  # (B, T, num_classes)
                 stage_pred = stage_prob.argmax(dim=-1)  # (B, T)
-                reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
+                stage_emb = stage_prob.unsqueeze(1)                            # (B,1,T,num_classes)
+                reward_pred = reward_model(img_emb, lang_emb, state, lens, stage_emb)
                 pred = torch.clip(reward_pred + stage_pred.float(), 0, cfg.model.num_classes-1)  # (B, T)
 
                 length = int(lens[0].item())
@@ -617,7 +645,7 @@ class RewindRewardWorkspace:
         anno_type = cfg.model.anno_type # dataset annotation type
         num_classes = cfg.model.num_classes
         repo_id = cfg.general.repo_id
-        model_num_classes = 6 if anno_type == "dense" else 9 # dense trained model check with sparse set
+        model_num_classes = 3
         valid_episodes = get_valid_episodes(cfg.general.repo_id)
         dataset_val = FrameGapLeRobotDataset(repo_id=cfg.general.repo_id, 
                                                horizon=cfg.model.horizon, 
@@ -647,14 +675,8 @@ class RewindRewardWorkspace:
         vis_dim = 512
         txt_dim = 512
 
-        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
-        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-       
-        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_015000_loss_0.033.pt"
-        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_015000_loss_0.167.pt"
-        
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.016.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.114.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_005000_loss_0.037.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_005000_loss_0.166.pt"
 
         # Create model instances
         reward_model = RewardTransformer(d_model=cfg.model.d_model, 
@@ -710,7 +732,7 @@ class RewindRewardWorkspace:
             pred_ep_result = []
             pred_ep_smoothed = []
             pred_ep_conf = []
-            x_offset = 9
+            x_offset = 0
             # x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
             eval_frame_gap = cfg.eval.eval_frame_gap
             smoother = RegressionConfidenceSmoother(value_range=(0.0, 1.0))
@@ -751,27 +773,29 @@ class RewindRewardWorkspace:
                 stage_prob = stage_model(img_emb, lang_emb, state, lens).softmax(dim=-1)  # (B, T, num_classes)
                 stage_pred = stage_prob.argmax(dim=-1)  # (B, T)
                 stage_conf = stage_prob.gather(-1, stage_pred.unsqueeze(-1)).squeeze(-1)  # (B, T)
-                reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
+                stage_emb = stage_prob.unsqueeze(1)                            # (B,1,T,num_classes)
+                reward_pred = reward_model(img_emb, lang_emb, state, lens, stage_emb)
                 pred = torch.clip(reward_pred + stage_pred.float(), 0, num_classes-1)  # (B, T)
                 raw_item = pred[0, cfg.model.n_obs_steps].item()
-                if anno_type == "dense": # dense trained model validate with sparse set
+                if anno_type == "sparse": 
                     raw_item_norm = normalize_sparse(raw_item)
                 else:
-                    raw_item_norm = normalize_dense(raw_item)
+                    raise NotImplementedError("only sparse annotation is supported for video eval")
                 
                 conf_val = stage_conf[0, cfg.model.n_obs_steps].item()
                 if idx >= (x_offset * eval_frame_gap):
-                    smoothed_item = smoother.update(raw_item_norm, conf_val)
+                    # smoothed_item = smoother.update(raw_item_norm, conf_val)
+                    smoothed_item = raw_item_norm
                 else:
                     smoothed_item = raw_item_norm
                 
                 pred_ep_result.append(raw_item_norm)
                 pred_ep_conf.append(conf_val)
                 pred_ep_smoothed.append(smoothed_item)
-                if anno_type == "dense": #only data processing, follows the dataset setting
-                    gt_ep_result.append(normalize_dense(trg[0, cfg.model.n_obs_steps].item()))
-                else:
+                if anno_type == "sparse": #only data processing, follows the dataset setting
                     gt_ep_result.append(normalize_sparse(trg[0, cfg.model.n_obs_steps].item()))
+                else:
+                    raise NotImplementedError("only sparse annotation is supported for video eval")
 
                 
 
@@ -927,7 +951,8 @@ class RewindRewardWorkspace:
                 stage_prob = stage_model(img_emb, lang_emb, state, lens).softmax(dim=-1)  # (B, T, num_classes)
                 stage_pred = stage_prob.argmax(dim=-1)  # (B, T)
                 stage_conf = stage_prob.gather(-1, stage_pred.unsqueeze(-1)).squeeze(-1)  # (B, T)
-                reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
+                stage_emb = stage_prob.unsqueeze(1)                            # (B,1,T,num_classes)
+                reward_pred = reward_model(img_emb, lang_emb, state, lens, stage_emb)
                 pred = torch.clip(reward_pred + stage_pred.float(), 0, cfg.model.num_classes-1)  # (B, T)
                 raw_item = pred[0, cfg.model.n_obs_steps].item()
                 if anno_type == "dense": # dense trained model check with sparse set
@@ -1170,12 +1195,13 @@ class RewindRewardWorkspace:
 
                 stage_prob = stage_model(img_emb, lang_emb, state, lens).softmax(dim=-1)  # (B, T, num_classes)
                 stage_pred = stage_prob.argmax(dim=-1)  # (B, T)
-                reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
+                stage_emb = stage_prob.unsqueeze(1)                            # (B,1,T,num_classes)
+                reward_pred = reward_model(img_emb, lang_emb, state, lens, stage_emb)
                 pred = torch.clip(reward_pred + stage_pred.float(), 0, cfg.model.num_classes-1)  # (B, T)
 
                 raw_stage_prob = stage_model(raw_img_emb, raw_lang_emb, raw_state, raw_lens).softmax(dim=-1)  # (B, T, num_classes)
                 raw_stage_pred = raw_stage_prob.argmax(dim=-1)  # (B, T)
-                raw_reward_pred = reward_model(raw_img_emb, raw_lang_emb, raw_state, raw_lens)  # (B, T)
+                raw_reward_pred = reward_model(raw_img_emb, raw_lang_emb, raw_state, raw_lens, stage_emb)  # (B, T)
                 raw_pred = torch.clip(raw_reward_pred + raw_stage_pred.float(), 0, cfg.model.num_classes-1)  # (B, T)
 
                 print(f"result gap: {pred[0, 1:7] - raw_pred[0, 1:7]}")

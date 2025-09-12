@@ -458,11 +458,9 @@ def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, e
     # === CREATE COMBINED FRAMES ===
     combined_frames = []
     smoothed = piecewise_transform(smoothed)
-    overview = draw_overview_panel(frames_middle, smoothed, frame_rate, save_path=str(episode_dir / "overview_panel.pdf"))
-    # save alongside the episode video
-    summary_path = episode_dir / "overview_panel.png"
-    # cv2 expects BGR
-    cv2.imwrite(str(summary_path), overview[:, :, ::-1])
+    # overview = draw_overview_panel(frames_middle, smoothed, frame_rate, save_path=str(episode_dir / "overview_panel.pdf"))
+    # summary_path = episode_dir / "overview_panel.png"
+    # cv2.imwrite(str(summary_path), overview[:, :, ::-1])
 
     for t in range(T):
         middle_resized = cv2.resize(frames_middle[t], (target_w, target_h))

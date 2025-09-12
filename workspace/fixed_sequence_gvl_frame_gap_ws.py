@@ -328,7 +328,6 @@ class RewindRewardWorkspace:
                 
 
             # --- clear memory ---
-            del img_list, imgs_all, img_emb, lang_emb, reward_pred, pred
             torch.cuda.empty_cache()
 
 

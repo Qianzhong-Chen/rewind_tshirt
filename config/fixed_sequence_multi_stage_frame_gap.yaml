@@ -7,12 +7,12 @@ cfg:
     task_name: "unload_dish"
     repo_id: Qianzhong-Chen/yam_unload_dish_reward_0911
     state_norm_path: "/home/david_chen/rewind_tshirt/assets/fold_tshirt.json"
-    camera_names:  [top_camera-images-rgb]
+    camera_names:  [left_camera-images-rgb, right_camera-images-rgb, top_camera-images-rgb]
     seed: 42
     device: "cuda"        # "cpu" for debugging
 
   dataloader:
-    batch_size: 64
+    batch_size: 32
     num_workers: 12 # nproc=32
     shuffle: True
     pin_memory: True
@@ -86,9 +86,9 @@ cfg:
     run_times: 50        # number of rollouts
     video_run_times: 20 # number of episodes to evaluate in video
     raw_data_run_times: 36
-    eval_frame_gap: 10
+    eval_frame_gap: 1
     
-    ckpt_path: ""
+    ckpt_path: "/nfs_us/david_chen/reward_model_ckpt/tshirt_folding_ablation/2025-09-12/03-06-42/rewind_reward_fixed_seq_model_frame_gap_multi_stage/unload_dish/checkpoints"
     raw_data_dir: ""
 
     
