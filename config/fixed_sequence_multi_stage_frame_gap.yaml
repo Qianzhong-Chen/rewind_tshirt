@@ -19,8 +19,8 @@ cfg:
     persistent_workers: True
 
   val_dataloader:
-    batch_size: 32
-    num_workers: 12
+    batch_size: 16
+    num_workers: 4
     shuffle: False
     pin_memory: True
     persistent_workers: True
@@ -55,6 +55,8 @@ cfg:
     state_dim: 14
     no_state: True
     dense_annotation: False # check the rule inside the dataset class to allign with progress
+    resume_training: True
+    model_path: "/nfs_us/david_chen/reward_model_ckpt/dish_unloading/2025-09-12/16-15-16/rewind_reward_fixed_seq_model_frame_gap_multi_stage/unload_dish/checkpoints"
 
     # Dense anno
     anno_type: "sparse"

@@ -47,7 +47,7 @@ cfg:
     no_state: True
     dense_annotation: False # check the rule inside the dataset class to allign with progress
     resume_training: False
-    model_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-26/09-59-56/reward_model/fold_tshirt_regression_sparse/checkpoints/reward_step_040000_loss_0.007.pt"
+    model_path: ""
 
     # Dense anno
     anno_type: "sparse"

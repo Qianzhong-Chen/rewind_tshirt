@@ -134,6 +134,18 @@ class RewindRewardWorkspace:
                                   num_classes=cfg.model.num_classes,
                                   dense_annotation=cfg.model.dense_annotation).to(self.device)
 
+        if cfg.model.resume_training:
+            reward_model_path = Path(cfg.model.model_path) / "reward_step_006000_loss_0.009.pt"
+            stage_model_path = Path(cfg.model.model_path) / "stage_step_006000_loss_0.116.pt"
+            # Load checkpoints
+            reward_ckpt = torch.load(reward_model_path, map_location=self.device)
+            stage_ckpt = torch.load(stage_model_path, map_location=self.device)
+            # Load weights
+            reward_model.load_state_dict(reward_ckpt["model"])
+            stage_model.load_state_dict(stage_ckpt["model"])
+            # Move to device
+            reward_model.to(self.device); stage_model.to(self.device)
+            reward_model.train(); stage_model.train()
 
         # Optimizer
         reward_optimizer = torch.optim.AdamW(
