@@ -30,7 +30,7 @@ cfg:
     persistent_workers: True
 
   val_dataloader:
-    batch_size: 32
+    batch_size: 16
     num_workers: 6
     shuffle: False
     pin_memory: True
@@ -56,7 +56,8 @@ cfg:
   model:
     d_model: 768          # CLS width of dinov2-base
     max_seq_len: 128
-    n_layers: 8
+    # n_layers: 8
+    n_layers: 4
     n_heads: 12
     dropout: 0.1
     horizon: 8
@@ -106,7 +107,7 @@ cfg:
     eval_every: 1        # epochs
     save_every: 5_000    # steps
     val_portion: 0.1     # fraction of episodes for validation
-    rollout_every: 1     # epoch
+    rollout_every: 10     # epoch
     rollout_steps: 10    # steps per rollout
 
   eval:
