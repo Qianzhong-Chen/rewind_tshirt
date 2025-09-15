@@ -513,8 +513,8 @@ class RewindRewardWorkspace:
 
         # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_035000_loss_0.018.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_035000_loss_0.089.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_014000_loss_0.002.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_014000_loss_0.070.pt"
 
         # Create model instances
         reward_model = RewardTransformer(d_model=cfg.model.d_model, 
@@ -687,8 +687,8 @@ class RewindRewardWorkspace:
         vis_dim = 512
         txt_dim = 512
 
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_005000_loss_0.037.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_005000_loss_0.166.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_014000_loss_0.002.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_014000_loss_0.070.pt"
 
         # Create model instances
         reward_model = RewardTransformer(d_model=cfg.model.d_model, 
@@ -733,9 +733,11 @@ class RewindRewardWorkspace:
         OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
         evaled_list = []
 
+        # rollout_episodes = [14, 16, 20, 45, 116, 142, 168, 186, 224, 252, 272, 261, 265, 269, 304]
+        rollout_episodes = [186, 168, 252, 288, 145, 265, 272, 49, 32, 157, 230, 216, 304, 224, 45, 116, 272, 16, 14, 186]
         for i in range(cfg.eval.video_run_times):
-            ep_index = random.choice([idx for idx in valid_episodes if idx not in evaled_list])
-            # ep_index = valid_episodes[i]
+            # ep_index = random.choice([idx for idx in valid_episodes if idx not in evaled_list])
+            ep_index = rollout_episodes[i]
             global_idx = valid_episodes.index(ep_index)
             evaled_list.append(ep_index)
             start_idx = dataset_val.episode_data_index["from"][global_idx].item()
@@ -796,8 +798,8 @@ class RewindRewardWorkspace:
                 
                 conf_val = stage_conf[0, cfg.model.n_obs_steps].item()
                 if idx >= (x_offset * eval_frame_gap):
-                    # smoothed_item = smoother.update(raw_item_norm, conf_val)
-                    smoothed_item = raw_item_norm
+                    smoothed_item = smoother.update(raw_item_norm, conf_val)
+                    # smoothed_item = raw_item_norm
                 else:
                     smoothed_item = raw_item_norm
                 

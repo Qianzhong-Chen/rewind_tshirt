@@ -12,9 +12,9 @@ DATA_PATH = "/nfs_old/david_chen/dataset/tshirt_yam_200_0718/folding_tshirt/epis
 
 def normalize_sparse(x: float) -> float:
     if 0 <= x < 1:
-        return 0.0 + (x - 0) / (1 - 0) * (0.5 - 0.0)
+        return 0.0 + (x - 0) / (1 - 0) * (0.4 - 0.0)
     elif 1 <= x <= 2:
-        return 0.5 + (x - 1) / (2 - 1) * (1.0 - 0.5)
+        return 0.4 + (x - 1) / (2 - 1) * (1.0 - 0.4)
     else:    
         raise ValueError("x must be in range [0, 2]")
     

@@ -56,7 +56,7 @@ cfg:
     no_state: True
     dense_annotation: False # check the rule inside the dataset class to allign with progress
     resume_training: True
-    model_path: "/nfs_us/david_chen/reward_model_ckpt/dish_unloading/2025-09-12/16-15-16/rewind_reward_fixed_seq_model_frame_gap_multi_stage/unload_dish/checkpoints"
+    model_path: "/nfs_us/david_chen/reward_model_ckpt/dish_unloading/2025-09-13/11-14-01/unload_dish/checkpoints"
 
     # Dense anno
     anno_type: "sparse"
@@ -90,7 +90,7 @@ cfg:
     raw_data_run_times: 36
     eval_frame_gap: 1
     
-    ckpt_path: "/nfs_us/david_chen/reward_model_ckpt/tshirt_folding_ablation/2025-09-12/03-06-42/reward_model/unload_dish/checkpoints"
+    ckpt_path: "/nfs_us/david_chen/reward_model_ckpt/dish_unloading/2025-09-13/11-14-01/unload_dish/checkpoints"
     raw_data_dir: ""
 
     
