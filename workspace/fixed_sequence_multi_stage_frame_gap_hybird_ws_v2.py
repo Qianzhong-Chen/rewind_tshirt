@@ -671,7 +671,7 @@ class RewindRewardWorkspace:
 
         # save path
         datetime_str = datetime.now().strftime("%Y.%m.%d-%H.%M.%S")
-        rollout_save_dir =  Path(self.save_dir) / "eval_video" / f"{datetime_str}"  # convert to Path first
+        rollout_save_dir =  Path(self.save_dir) / "eval_video"  # convert to Path first
         rollout_save_dir.mkdir(parents=True, exist_ok=True)
         OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
         evaled_list = []
@@ -846,7 +846,7 @@ class RewindRewardWorkspace:
 
         # save path
         datetime_str = datetime.now().strftime("%Y.%m.%d-%H.%M.%S")
-        rollout_save_dir =  Path(self.save_dir) / "eval_video" / f"{datetime_str}"  # convert to Path first
+        rollout_save_dir =  Path(self.save_dir) / "eval_video"  # convert to Path first
         rollout_save_dir.mkdir(parents=True, exist_ok=True)
         OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
 
@@ -1042,7 +1042,7 @@ class RewindRewardWorkspace:
 
                 # save path
 
-                rollout_save_dir =  Path(self.save_dir) / "eval_video" / f"{datetime_str}" / f"{anno_type}" / f"{eval_type}"  # convert to Path first
+                rollout_save_dir =  Path(self.save_dir) / "eval_video" / f"{anno_type}" / f"{eval_type}"  # convert to Path first
                 rollout_save_dir.mkdir(parents=True, exist_ok=True)
                 OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
 

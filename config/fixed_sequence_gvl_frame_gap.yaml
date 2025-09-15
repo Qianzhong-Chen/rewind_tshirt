@@ -83,7 +83,7 @@ cfg:
     raw_data_run_times: 36
     eval_frame_gap: 10
     # Dense
-    ckpt_path: ""
+    ckpt_path: "/nfs_old/david_chen/reward_model_ckpt/dish_unloading/2025-09-13/07-42-43/unload_dish_gvl/checkpoints/reward_step_025000_loss_0.001.pt"
     raw_data_dir: ""
 
     

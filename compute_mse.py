@@ -8,12 +8,12 @@ import numpy as np
 from typing import List, Tuple, Optional
 
 # >>> Hardcoded path <<<
-BASE_DIR = ""
+BASE_DIR = "/nfs_old/david_chen/reward_model_ckpt/dish_unloading/2025-09-16/06-49-20/unload_dish_vlc_sparse/eval_video"
 
 
 def load_pair(ep_dir: Path) -> Optional[Tuple[np.ndarray, np.ndarray]]:
-    sm_path = ep_dir / "smoothed.npy"
-    # sm_path = ep_dir / "pred.npy"
+    # sm_path = ep_dir / "smoothed.npy"
+    sm_path = ep_dir / "pred.npy"
     gt_path = ep_dir / "gt.npy"
     if not (sm_path.exists() and gt_path.exists()):
         return None

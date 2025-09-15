@@ -11,7 +11,7 @@ from lerobot.common.datasets.frame_gap_traj_lerobot_dataset import EpsLeRobotDat
 from lerobot.common.datasets.frame_gap_multi_stage_lerobot_dataset import FrameGapLeRobotDataset 
 from data_utils import comply_lerobot_batch_regression, comply_lerobot_batch_regression_eval, get_valid_episodes, split_train_eval_episodes, comply_lerobot_batch_multi_stage_video_eval
 from train_utils import plot_episode_result, set_seed, save_ckpt, plot_pred_vs_gt, get_normalizer_from_calculated, plot_episode_result, plot_episode_result_raw_data
-from raw_data_utils import get_frame_num, get_frame_data_fast, get_traj_data, normalize_dense
+from raw_data_utils import get_frame_num, get_frame_data_fast, get_traj_data, normalize_dense, normalize_sparse
 from models.multi_stage_reward_net import RewardTransformer
 from models.clip_encoder import FrozenCLIPEncoder
 from make_demo_video import produce_video, produce_video_raw_data, produce_video_raw_data_hybird
@@ -522,7 +522,7 @@ class RewindRewardWorkspace:
 
         # save path
         datetime_str = datetime.now().strftime("%Y.%m.%d-%H.%M.%S")
-        rollout_save_dir =  Path(self.save_dir) / "eval_video" / f"{datetime_str}"  # convert to Path first
+        rollout_save_dir =  Path(self.save_dir) / "eval_video"  # convert to Path first
         rollout_save_dir.mkdir(parents=True, exist_ok=True)
         OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
         evaled_list = []
@@ -577,12 +577,13 @@ class RewindRewardWorkspace:
                     state = torch.zeros_like(state, device=self.device)
                 
                 reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
+                reward_pred *= 10
                 pred = torch.clip(reward_pred, 0, 1)  # (B, T)
                 raw_item = pred[0, cfg.model.n_obs_steps].item()
                 smoothed_item = raw_item
                 
                 pred_ep_result.append(raw_item)
-                gt_ep_result.append(normalize_dense(trg[0, cfg.model.n_obs_steps].item()))
+                gt_ep_result.append(normalize_sparse(trg[0, cfg.model.n_obs_steps].item()))
                 pred_ep_smoothed.append(smoothed_item)
                 
             # save results
@@ -638,7 +639,7 @@ class RewindRewardWorkspace:
 
         # save path
         datetime_str = datetime.now().strftime("%Y.%m.%d-%H.%M.%S")
-        rollout_save_dir =  Path(self.save_dir) / "eval_video" / f"{datetime_str}"  # convert to Path first
+        rollout_save_dir =  Path(self.save_dir) / "eval_video"  # convert to Path first
         rollout_save_dir.mkdir(parents=True, exist_ok=True)
         OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
 

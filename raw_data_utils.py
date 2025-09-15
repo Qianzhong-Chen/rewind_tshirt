@@ -20,23 +20,31 @@ def normalize_sparse(x: float) -> float:
     
 def normalize_dense(x: float) -> float:
     if 0 <= x < 1:
-        return 0.0 + (x - 0) * (0.08 - 0.0)
-    elif 1 <= x < 2:
-        return 0.08 + (x - 1) * (0.37 - 0.08)
-    elif 2 <= x < 3:
-        return 0.37 + (x - 2) * (0.53 - 0.37)
-    elif 3 <= x < 4:
-        return 0.53 + (x - 3) * (0.67 - 0.53)
-    elif 4 <= x <= 5:
-        return 0.67 + (x - 4) * (0.72 - 0.67)
-    elif 5 <= x <= 6:
-        return 0.72 + (x - 5) * (0.81 - 0.72)
-    elif 6 <= x <= 7:
-        return 0.81 + (x - 6) * (0.9 - 0.81)
-    elif 7 <= x <= 8:
-        return 0.9 + (x - 7) * (1.0 - 0.9)
-    else:
-        raise ValueError("x must be in range [0, 8]")
+        return 0.0 + (x - 0) / (1 - 0) * (0.4 - 0.0)
+    elif 1 <= x <= 2:
+        return 0.4 + (x - 1) / (2 - 1) * (1.0 - 0.4)
+    else:    
+        raise ValueError("x must be in range [0, 2]")
+    
+# def normalize_dense(x: float) -> float:
+#     if 0 <= x < 1:
+#         return 0.0 + (x - 0) * (0.08 - 0.0)
+#     elif 1 <= x < 2:
+#         return 0.08 + (x - 1) * (0.37 - 0.08)
+#     elif 2 <= x < 3:
+#         return 0.37 + (x - 2) * (0.53 - 0.37)
+#     elif 3 <= x < 4:
+#         return 0.53 + (x - 3) * (0.67 - 0.53)
+#     elif 4 <= x <= 5:
+#         return 0.67 + (x - 4) * (0.72 - 0.67)
+#     elif 5 <= x <= 6:
+#         return 0.72 + (x - 5) * (0.81 - 0.72)
+#     elif 6 <= x <= 7:
+#         return 0.81 + (x - 6) * (0.9 - 0.81)
+#     elif 7 <= x <= 8:
+#         return 0.9 + (x - 7) * (1.0 - 0.9)
+#     else:
+#         raise ValueError("x must be in range [0, 8]")
 
 
 
