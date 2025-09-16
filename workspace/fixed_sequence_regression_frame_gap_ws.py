@@ -531,11 +531,12 @@ class RewindRewardWorkspace:
         rollout_save_dir.mkdir(parents=True, exist_ok=True)
         OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
         evaled_list = []
-        rollout_episodes = [186, 168, 252, 288, 145, 265, 272, 49, 32, 157, 230, 216, 304, 224, 45, 116, 272, 16, 14, 186]
-
+        # rollout_episodes = [186, 168, 252, 288, 145, 265, 272, 49, 32, 157, 230, 216, 304, 224, 45, 116, 272, 16, 14, 186]
+        # rollout_episodes = [168] # [620:]
+        # rollout_episodes = [186] # [:3000]
         for i in range(cfg.eval.video_run_times):
-            ep_index = rollout_episodes[i]
-            # ep_index = random.choice([idx for idx in valid_episodes if idx not in evaled_list])
+            ep_index = random.choice([idx for idx in valid_episodes if idx not in evaled_list])
+            # ep_index = rollout_episodes[i]
             global_idx = valid_episodes.index(ep_index)
             evaled_list.append(ep_index)
             start_idx = dataset_val.episode_data_index["from"][global_idx].item()
@@ -583,7 +584,7 @@ class RewindRewardWorkspace:
                     state = torch.zeros_like(state, device=self.device)
                 
                 reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
-                reward_pred *= 9
+                reward_pred *= 8
                 pred = torch.clip(reward_pred, 0, 1)  # (B, T)
                 raw_item = pred[0, cfg.model.n_obs_steps].item()
                 smoothed_item = raw_item

@@ -329,28 +329,26 @@ def draw_overview_panel(frames: list[np.ndarray],
     Also returns the rendered RGB array.
     """
     
-
-    
     T = len(frames)
     if T < 10 or len(reward) < 2:
         raise ValueError("Not enough frames/reward to build overview panel.")
 
     # --- SET FONT TO TIMES NEW ROMAN ---
-    # import matplotlib as mpl
-    # mpl.rcParams['font.family'] = 'serif'
-    # mpl.rcParams['font.serif'] = ['Times New Roman']
-    # mpl.rcParams['font.size'] = 42
-    # mpl.rcParams['pdf.fonttype'] = 42  # embed fonts in PDF
+    import matplotlib as mpl
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = ['Times New Roman']
+    mpl.rcParams['font.size'] = 42
+    mpl.rcParams['pdf.fonttype'] = 42  # embed fonts in PDF
     
     # frame picks (0-based)
-    idxs = [min(4, T-1), max(0, min(T//4, T-1)),
-            max(0, min(int(0.7*T), T-1)), max(0, T-3)]
+    idxs = [min(int(0.03*T), T-1), max(0, min(int(0.33*T), T-1)),
+            max(0, min(int(0.64*T), T-1)), max(0, T-45)]
 
     # crop thumbnails to 848x480
     thumbs = [center_crop_to_848x480(frames[i]) for i in idxs]
 
     # time axis (sec)
-    t = np.arange(len(reward), dtype=float) / float(frame_rate) * 10
+    t = np.arange(len(reward), dtype=float) / float(frame_rate) 
 
     # --- Figure/layout ---
     total_h_units = 1.0 + 1.5
@@ -387,7 +385,7 @@ def draw_overview_panel(frames: list[np.ndarray],
         xi = t[min(idx, len(t)-1)]
         yi = float(reward[min(idx, len(reward)-1)])
 
-        ax.plot([xi], [yi], 'o', color='r', markersize=18)
+        ax.plot([xi], [yi], 'o', color='r', markersize=30)
 
         con = ConnectionPatch(
             xyA=(0.5, 0.0), coordsA=top_axes[i].transAxes,
@@ -408,6 +406,191 @@ def draw_overview_panel(frames: list[np.ndarray],
     img = img.reshape(canvas.get_width_height()[::-1] + (4,))[:, :, :3]
     plt.close(fig)
     return img
+
+# def draw_overview_panel(frames: list[np.ndarray],
+#                                 reward: np.ndarray,
+#                                 frame_rate: float,
+#                                 save_path: str = "overview_panel.pdf",
+#                                 out_w_each: int = 848,
+#                                 out_h_each: int = 480,
+#                                 min_cycle_frames: int = 200) -> np.ndarray:
+#     """
+#     Layout:
+#       Row 1: 4 thumbnails (cycles 1..4)
+#       Row 2: reward vs time curve
+#       Row 3: 4 thumbnails (cycles 5..8)
+
+#     Cycle j (1..8): pick the frame whose reward within that cycle is
+#       nearest to target = 0.125 * j   (i.e., 0.125, 0.25, ..., 1.0).
+
+#     Heuristic: ensure each detected cycle spans at least `min_cycle_frames`
+#       frames by merging adjacent short segments before picking.
+
+#     Requires a helper:
+#       center_crop_to_848x480(img: np.ndarray) -> np.ndarray
+#     """
+#     import numpy as np
+#     import matplotlib as mpl
+#     import matplotlib.pyplot as plt
+#     from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+#     from matplotlib.patches import ConnectionPatch
+
+#     T = len(frames)
+#     R = len(reward)
+#     if T < 10 or R < 2:
+#         raise ValueError("Not enough frames/reward to build overview panel.")
+
+#     # --- Fonts: Times New Roman (ensure installed) ---
+#     mpl.rcParams['font.family'] = 'serif'
+#     mpl.rcParams['font.serif'] = ['Times New Roman']
+#     mpl.rcParams['font.size'] = 42
+#     mpl.rcParams['pdf.fonttype'] = 42
+
+#     r = np.asarray(reward, dtype=float)
+
+#     # Light smoothing to stabilize cycle detection (EMA)
+#     if R > 5:
+#         alpha = 0.15
+#         for i in range(1, R):
+#             r[i] = alpha * r[i] + (1 - alpha) * r[i - 1]
+
+#     # --- Detect cycle starts on large drops / high->low transitions ---
+#     high_th, low_th, drop_th = 0.8, 0.2, 0.5
+#     starts = [0]
+#     for i in range(1, R):
+#         if (r[i - 1] > high_th and r[i] < low_th) or (r[i - 1] - r[i] > drop_th):
+#             starts.append(i)
+#     starts = np.unique(np.clip(np.array(starts, int), 0, R - 1)).tolist()
+#     ends = starts[1:] + [R]
+#     raw_cycles = [(s, e) for s, e in zip(starts, ends) if e - s >= 2]
+#     if not raw_cycles:
+#         raw_cycles = [(0, R)]
+
+#     # --- Merge cycles until each spans >= min_cycle_frames in *video* time ---
+#     # Map reward index to frame index proportionally in order to estimate spans.
+#     ratio = (T - 1) / max(R - 1, 1)
+#     merged = []
+#     cur_s, cur_e = raw_cycles[0]
+#     for s, e in raw_cycles[1:] + [(None, None)]:  # sentinel
+#         # Estimated frame span of current segment
+#         span_frames = int(round((cur_e - cur_s) * ratio))
+#         if span_frames >= min_cycle_frames or s is None:
+#             merged.append((cur_s, cur_e))
+#             cur_s, cur_e = s, e
+#         else:
+#             # merge with next
+#             cur_e = e
+#     # Sometimes merging can still leave last short; ensure again
+#     if merged:
+#         fixed = []
+#         acc_s, acc_e = merged[0]
+#         for s, e in merged[1:] + [(None, None)]:
+#             span_frames = int(round((acc_e - acc_s) * ratio))
+#             if span_frames >= min_cycle_frames or s is None:
+#                 fixed.append((acc_s, acc_e))
+#                 acc_s, acc_e = s, e
+#             else:
+#                 acc_e = e
+#         cycles = fixed
+#     else:
+#         cycles = raw_cycles
+
+#     # If still too many/few, trim/pad to 8 cycles
+#     if len(cycles) < 8:
+#         # extend the last cycle boundary to the end
+#         last = cycles[-1]
+#         cycles += [last] * (8 - len(cycles))
+#     cycles = cycles[:8]
+
+#     # Targets for the 8 cycles: 0.125, 0.25, ..., 1.0 (clipped to [0,1])
+#     targets = [float(np.clip(0.125 * (i + 1), 0.0, 1.0)) for i in range(8)]
+
+#     # For each cycle, choose the reward index with value nearest to target (within that cycle)
+#     reward_idxs = []
+#     for (s, e), tval in zip(cycles, targets):
+#         seg = r[s:e]
+#         if seg.size == 0:
+#             reward_idxs.append(s)
+#             continue
+#         k = int(np.argmin(np.abs(seg - tval)))
+#         reward_idxs.append(s + k)
+
+#     # Map reward indices -> frame indices (proportional, robust to length mismatch)
+#     frame_idxs = [0, 450, 1080, 1490, 2000, 2315, 2600, 2995]
+#     tim_idxs = [float(x/30) for x in frame_idxs]
+
+    
+#     def plot(frame_idxs=frame_idxs):
+#         # Prepare thumbnails
+#         frame_rate=30
+#         tim_idxs = [float(x/30) for x in frame_idxs]
+#         thumbs = [center_crop_to_848x480(frames[i]) for i in frame_idxs]
+
+#         # --- Time axis for the curve ---
+#         t = np.arange(R, dtype=float) / float(frame_rate)
+
+#         # --- Figure / layout: 3 rows (top imgs, curve, bottom imgs) ---
+#         total_h_units = 1.0 + 1.5 + 1.0
+#         fig_w = (out_w_each * 4) / 100.0
+#         fig_h = (out_h_each * total_h_units) / 100.0
+#         fig = plt.figure(figsize=(fig_w, fig_h), dpi=600, constrained_layout=True)
+#         gs = fig.add_gridspec(nrows=3, ncols=4,
+#                             height_ratios=[1.0, 1.5, 1.0],
+#                             hspace=0.02, wspace=0.01)
+
+#         top_axes = [fig.add_subplot(gs[0, c]) for c in range(4)]
+#         ax_curve = fig.add_subplot(gs[1, :])
+#         bot_axes = [fig.add_subplot(gs[2, c]) for c in range(4)]
+
+#         # Show thumbnails
+#         for ax_img, im in zip(top_axes + bot_axes, thumbs):
+#             ax_img.imshow(im)
+#             ax_img.set_xticks([]); ax_img.set_yticks([])
+
+#         # Reward plot
+#         ax_curve.plot(t, reward, linewidth=6)
+#         ax_curve.set_ylim(-0.05, 1.05)
+#         ax_curve.set_xlabel("Time (s)", fontsize=50)
+#         ax_curve.set_ylabel("Predicted Reward", fontsize=50)
+#         ax_curve.grid(True, alpha=0.3)
+#         ax_curve.tick_params(axis='both', labelsize=46)
+
+#         # --- Connect each image ONLY to its own cycle's chosen point ---
+#         all_axes = top_axes + bot_axes  # order matches frame_idxs / tim_idxs
+#         for ax_img, fidx, x_sec in zip(all_axes, frame_idxs, tim_idxs):
+#             # map frame index to reward index nearest in time
+#             ridx = int(np.argmin(np.abs(t - x_sec)))
+#             xi = x_sec                 # manual time in seconds
+#             yi = float(reward[ridx])   # reward value at nearest time
+
+#             # marker on the curve
+#             if xi < 50:
+#                 ax_curve.plot([xi], [yi], 'o', color='r', markersize=30)
+#             else:
+#                 ax_curve.plot([xi], [yi], 'o', color='orange', markersize=30)
+
+#             # connector: from bottom of top row, from top of bottom row
+#             from_top_row = ax_img in top_axes
+#             yA = 0.0 if from_top_row else 1.0
+#             if xi < 50:
+#                 con = ConnectionPatch(xyA=(0.5, yA), coordsA=ax_img.transAxes, xyB=(xi, yi), coordsB=ax_curve.transData, arrowstyle='-', linestyle="--", color='r', linewidth=3.0, alpha=0.9)
+#             else:
+#                 con = ConnectionPatch(xyA=(0.5, yA), coordsA=ax_img.transAxes, xyB=(xi, yi), coordsB=ax_curve.transData, arrowstyle='-', linestyle="--", color='orange', linewidth=3.0, alpha=0.9)
+
+#             fig.add_artist(con)
+        
+#         # Save & return RGB
+#         fig.savefig(save_path, format="pdf", bbox_inches="tight")
+#         canvas = FigureCanvas(fig); canvas.draw()
+#         img = np.frombuffer(canvas.buffer_rgba(), dtype=np.uint8).copy()
+#         img = img.reshape(canvas.get_width_height()[::-1] + (4,))[:, :, :3]
+#         plt.close(fig)
+#         return img
+        
+    
+#     return plot(frame_idxs)
+
+
 
 
 def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, episode_num, x_offset=30, frame_gap=None):
@@ -457,7 +640,7 @@ def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, e
 
     # === CREATE COMBINED FRAMES ===
     combined_frames = []
-    smoothed = piecewise_transform(smoothed)
+    # smoothed = piecewise_transform(smoothed)
     # overview = draw_overview_panel(frames_middle, smoothed, frame_rate, save_path=str(episode_dir / "overview_panel.pdf"))
     # summary_path = episode_dir / "overview_panel.png"
     # cv2.imwrite(str(summary_path), overview[:, :, ::-1])

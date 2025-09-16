@@ -734,10 +734,12 @@ class RewindRewardWorkspace:
         evaled_list = []
 
         # rollout_episodes = [14, 16, 20, 45, 116, 142, 168, 186, 224, 252, 272, 261, 265, 269, 304]
-        rollout_episodes = [186, 168, 252, 288, 145, 265, 272, 49, 32, 157, 230, 216, 304, 224, 45, 116, 272, 16, 14, 186]
+        # rollout_episodes = [186, 168, 252, 288, 145, 265, 272, 49, 32, 157, 230, 216, 304, 224, 45, 116, 272, 16, 14, 186]
+        # rollout_episodes = [168] # [620:]
+        # rollout_episodes = [186] # [:3000]
         for i in range(cfg.eval.video_run_times):
-            # ep_index = random.choice([idx for idx in valid_episodes if idx not in evaled_list])
-            ep_index = rollout_episodes[i]
+            ep_index = random.choice([idx for idx in valid_episodes if idx not in evaled_list])
+            # ep_index = rollout_episodes[i]
             global_idx = valid_episodes.index(ep_index)
             evaled_list.append(ep_index)
             start_idx = dataset_val.episode_data_index["from"][global_idx].item()
