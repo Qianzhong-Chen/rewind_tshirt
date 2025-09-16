@@ -811,7 +811,6 @@ class RewindRewardWorkspace:
                 else:
                     raise NotImplementedError("only sparse annotation is supported for video eval")
 
-                
 
             # save results
             save_dir = plot_episode_result(ep_index, pred_ep_smoothed, gt_ep_result, x_offset, rollout_save_dir, frame_gap=eval_frame_gap, ep_conf=pred_ep_conf)
@@ -835,7 +834,7 @@ class RewindRewardWorkspace:
         state_normalizer = get_normalizer_from_calculated(cfg.general.state_norm_path, self.device)
         anno_type = cfg.model.anno_type # dataset annotation type
         num_classes = cfg.model.num_classes
-        model_num_classes = 6 if anno_type == "dense" else 9 # dense trained model check with sparse set
+        model_num_classes = 3 # dense trained model check with sparse set
 
 
         # CLIP
@@ -845,14 +844,9 @@ class RewindRewardWorkspace:
         vis_dim = 512
         txt_dim = 512
 
-        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
-        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
         
-        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_015000_loss_0.033.pt"
-        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_015000_loss_0.167.pt"
-        
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.016.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.114.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_014000_loss_0.002.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_014000_loss_0.070.pt"
 
         # Create model instances
         reward_model = RewardTransformer(d_model=cfg.model.d_model, 
@@ -890,7 +884,7 @@ class RewindRewardWorkspace:
 
         # save path
         datetime_str = datetime.now().strftime("%Y.%m.%d-%H.%M.%S")
-        rollout_save_dir =  Path(self.save_dir) / "eval_video"  # convert to Path first
+        rollout_save_dir =  Path(self.save_dir) / "eval_raw"  # convert to Path first
         rollout_save_dir.mkdir(parents=True, exist_ok=True)
         OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
 
@@ -969,10 +963,10 @@ class RewindRewardWorkspace:
                 reward_pred = reward_model(img_emb, lang_emb, state, lens, stage_emb)
                 pred = torch.clip(reward_pred + stage_pred.float(), 0, cfg.model.num_classes-1)  # (B, T)
                 raw_item = pred[0, cfg.model.n_obs_steps].item()
-                if anno_type == "dense": # dense trained model check with sparse set
+                if anno_type == "sparse": 
                     raw_item_norm = normalize_sparse(raw_item)
                 else:
-                    raw_item_norm = normalize_dense(raw_item)
+                    raise NotImplementedError("only sparse annotation is supported for raw eval")
                 
                 conf_val = stage_conf[0, cfg.model.n_obs_steps].item()
                 if idx >= (x_offset * eval_frame_gap):

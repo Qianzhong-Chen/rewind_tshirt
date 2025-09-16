@@ -34,7 +34,7 @@ class RewindRewardWorkspace:
         self.camera_names = cfg.general.camera_names
         # TODO: temp fix for nfs saving
         datetime_str = datetime.now().strftime("%Y-%m-%d/%H-%M-%S")
-        self.save_dir = Path(f'/nfs_old/david_chen/reward_model_ckpt/dish_unloading/{datetime_str}/{cfg.general.task_name}')
+        self.save_dir = Path(f'/nfs_us/david_chen/reward_model_ckpt/dish_unloading/{datetime_str}/{cfg.general.task_name}')
         # self.save_dir = Path(f'{cfg.general.project_name}/{cfg.general.task_name}')
         self.save_dir.mkdir(parents=True, exist_ok=True)
         print(f"[Init] Logging & ckpts to: {self.save_dir}")
@@ -716,18 +716,12 @@ class RewindRewardWorkspace:
 
                 if cfg.model.no_state:
                     state = torch.zeros_like(state, device=self.device)
+                
                 reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
+                reward_pred *= 11
                 pred = torch.clip(reward_pred, 0, 1)  # (B, T)
                 raw_item = pred[0, cfg.model.n_obs_steps].item()
                 smoothed_item = raw_item
-                
-                # if idx < (cfg.model.n_obs_steps * cfg.model.frame_gap + 100):
-                #     smoothed_item = raw_item
-                # elif abs(frame_num - idx) < 100:
-                #     smoothed_item = raw_item
-                # else:
-                #     smoothed_item = torch.mean(pred[0, 1:1+cfg.model.n_obs_steps]).item() 
-                # smoothed_item = min(max(smoothed_item, pred_ep_result[-1]-0.0125), pred_ep_result[-1] + 0.0125)
                 
                 pred_ep_result.append(raw_item)
                 pred_ep_smoothed.append(smoothed_item)
