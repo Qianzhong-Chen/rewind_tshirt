@@ -8,7 +8,7 @@ import numpy as np
 from typing import List, Tuple, Optional
 
 # >>> Hardcoded path <<<
-BASE_DIR = "/nfs_old/david_chen/reward_model_ckpt/dish_unloading/2025-09-16/06-49-20/unload_dish_vlc_sparse/eval_video"
+BASE_DIR = "/nfs_old/david_chen/reward_model_ckpt/dish_unloading/2025-09-16/09-06-22/unload_dish_regression/eval_video"
 
 
 def load_pair(ep_dir: Path) -> Optional[Tuple[np.ndarray, np.ndarray]]:

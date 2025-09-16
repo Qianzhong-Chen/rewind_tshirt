@@ -583,7 +583,7 @@ class RewindRewardWorkspace:
                     state = torch.zeros_like(state, device=self.device)
                 
                 reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
-                reward_pred *= 10
+                reward_pred *= 9
                 pred = torch.clip(reward_pred, 0, 1)  # (B, T)
                 raw_item = pred[0, cfg.model.n_obs_steps].item()
                 smoothed_item = raw_item
