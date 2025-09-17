@@ -23,7 +23,7 @@ cfg:
     device: "cuda"        # "cpu" for debugging
 
   dataloader:
-    batch_size: 48
+    batch_size: 32
     num_workers: 6 # nproc=32
     shuffle: True
     pin_memory: True
