@@ -64,7 +64,7 @@ cfg:
     max_rewind_steps: 4
     frame_gap: 30
     state_dim: 14
-    no_state: True
+    no_state: False
     dense_annotation: False # check the rule inside the dataset class to allign with progress
 
     # Sparse anno
