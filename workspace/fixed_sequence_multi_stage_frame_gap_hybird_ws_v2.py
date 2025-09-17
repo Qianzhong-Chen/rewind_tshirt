@@ -617,15 +617,18 @@ class RewindRewardWorkspace:
 
         # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        # SOTA 0904
-        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
-        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.014.pt"
-        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_080000_loss_0.004.pt"
-        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_080000_loss_0.008.pt"
         
-        # No rewind ablation
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.002.pt"
+        # SOTA 0904
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_030000_loss_0.006.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_030000_loss_0.023.pt"
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.002.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_050000_loss_0.002.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_050000_loss_0.005.pt"
+        
+        # # No rewind ablation
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.002.pt"
         
         if anno_type == "sparse":
             num_classes = cfg.model.num_classes_sparse
@@ -672,6 +675,10 @@ class RewindRewardWorkspace:
         datetime_str = datetime.now().strftime("%Y.%m.%d-%H.%M.%S")
         rollout_save_dir =  Path(self.save_dir) / "eval_video" / f"{datetime_str}"  # convert to Path first
         rollout_save_dir.mkdir(parents=True, exist_ok=True)
+        ckpt_name = reward_model_path.stem; ckpt_note_path = rollout_save_dir / "ckpt_note.txt"
+        with open(ckpt_note_path, "w", encoding="utf-8") as f:
+            f.write(f"Reward model: {ckpt_name}\n")
+            
         OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
         evaled_list = []
 
@@ -787,15 +794,17 @@ class RewindRewardWorkspace:
         # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_140000_loss_0.002.pt"
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_140000_loss_0.006.pt"
         
-        # # 0904 SOTA model
-        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_010000_loss_0.009.pt"
-        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_010000_loss_0.035.pt"
+        # SOTA 0904
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_030000_loss_0.006.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_030000_loss_0.023.pt"
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.002.pt"
         # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_050000_loss_0.002.pt"
-        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_050000_loss_0.002.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_050000_loss_0.005.pt"
         
-        # 0908 No rewind ablation
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.002.pt"
+        # # 0908 No rewind ablation
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.002.pt"
         
         
         anno_type = cfg.eval.mode
@@ -841,11 +850,14 @@ class RewindRewardWorkspace:
         reward_model.eval(); stage_model.eval()
 
         # save path
-        datetime_str = datetime.now().strftime("%Y.%m.%d-%H.%M.%S")
+        datetime_str = datetime.now().strftime("%Y.%m.%d/%H.%M.%S")
         rollout_save_dir =  Path(self.save_dir) / "eval_video" / f"{datetime_str}"  # convert to Path first
         rollout_save_dir.mkdir(parents=True, exist_ok=True)
+        ckpt_name = reward_model_path.stem; ckpt_note_path = rollout_save_dir / "ckpt_note.txt"
+        with open(ckpt_note_path, "w", encoding="utf-8") as f:
+            f.write(f"Reward model: {ckpt_name}\n")
+            
         OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
-
         
         # x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
         x_offset = 0
