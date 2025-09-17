@@ -18,7 +18,7 @@ cfg:
     # repo_id_sparse: Qianzhong-Chen/tshirt_reward_test_0717
     # repo_id_dense: Qianzhong-Chen/tshirt_reward_hlm_dense_0812
     state_norm_path: "/home/david_chen/rewind_tshirt/assets/fold_tshirt.json"
-    camera_names:  [top_camera-images-rgb]
+    camera_names:  [left_camera-images-rgb, right_camera-images-rgb, top_camera-images-rgb]
     seed: 42
     device: "cuda"        # "cpu" for debugging
 
@@ -56,14 +56,12 @@ cfg:
   model:
     d_model: 768          # CLS width of dinov2-base
     max_seq_len: 128
-    # n_layers: 8
-    n_layers: 4
+    n_layers: 8
     n_heads: 12
     dropout: 0.1
     horizon: 8
     n_obs_steps: 8
-    # max_rewind_steps: 4
-    max_rewind_steps: 0
+    max_rewind_steps: 4
     frame_gap: 30
     state_dim: 14
     no_state: True

@@ -39,7 +39,7 @@ class RewindRewardWorkspace:
         self.camera_names = cfg.general.camera_names
         # TODO: temp fix for us05 saving
         datetime_str = datetime.now().strftime("%Y-%m-%d/%H-%M-%S")
-        self.save_dir = Path(f'/nfs_us/david_chen/reward_model_ckpt/tshirt_folding_ablation/{datetime_str}/{cfg.general.project_name}/{cfg.general.task_name}')
+        self.save_dir = Path(f'/nfs_us/david_chen/reward_model_ckpt/tshirt_folding_ablation/{datetime_str}/{cfg.general.task_name}')
         # self.save_dir = Path(f'{cfg.general.project_name}/{cfg.general.task_name}')
         self.save_dir.mkdir(parents=True, exist_ok=True)
         print(f"[Init] Logging & ckpts to: {self.save_dir}")
