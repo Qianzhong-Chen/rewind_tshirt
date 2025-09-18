@@ -357,13 +357,13 @@ def draw_overview_panel(frames: list[np.ndarray],
     mpl.rcParams['font.size'] = 42
     mpl.rcParams['pdf.fonttype'] = 42  # embed fonts in PDF
     
-    # # demo
-    # idxs = [min(4, T-1), max(0, min(T//4, T-1)),
-    #         max(0, min(int(0.7*T), T-1)), max(0, T-3)]
+    # demo
+    idxs = [min(4, T-1), max(0, min(T//4, T-1)),
+            max(0, min(int(0.7*T), T-1)), max(0, T-3)]
     
-    # rollout
-    idxs = [max(0, min(T//4, T-1)), max(0, min(int(0.61*T), T-1)),
-            max(0, min(int(0.70*T), T-1)), max(0, T-20)]
+    # # rollout
+    # idxs = [max(0, min(T//4, T-1)), max(0, min(int(0.61*T), T-1)),
+    #         max(0, min(int(0.70*T), T-1)), max(0, T-20)]
 
     # crop thumbnails to 848x480
     thumbs = [center_crop_to_848x480(frames[i]) for i in idxs]
@@ -428,6 +428,153 @@ def draw_overview_panel(frames: list[np.ndarray],
     plt.close(fig)
     return img
 
+def draw_overview_panel_dual(
+    frames: list[np.ndarray],
+    reward_main: np.ndarray,
+    frame_rate: float,
+    alt_curve_npy: str | None = None,
+    reward_alt: np.ndarray | None = None,
+    save_path: str = "overview_panel.pdf",
+    out_w_each: int = 848,
+    out_h_each: int = 480,
+    dash_pad: float = 0.05,          # extra margin added above/below the two-curve span
+    dash_min_height: float = 0.12,   # if curves are too close, enforce at least this height
+    dash_ls: str = "--",
+    dash_lw: float = 6.0,
+    conn_lw: float = 4.0,
+    guide_color: str = "tab:red", # vertical dashed segment color
+    conn_color: str = "tab:red",  # connector line color
+):
+    """
+    Top: 4 thumbnails; Bottom: reward_main (+ optional reward_alt) vs time.
+    For each chosen timestamp:
+      - draw an adaptive-height vertical dashed line at x = timestamp that spans both curves (+ padding)
+      - draw a connector from the bottom-center of the thumbnail to the dashed segment midpoint.
+    Saves a PDF and returns the rendered RGB array.
+
+    If `alt_curve_npy` is provided, it is loaded and overrides `reward_alt`.
+    """
+    import numpy as np
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
+    from matplotlib.patches import ConnectionPatch
+
+    # ---- validate & load second curve if needed ----
+    T = len(frames)
+    if T < 10 or len(reward_main) < 2:
+        raise ValueError("Not enough frames/reward to build overview panel.")
+
+    if alt_curve_npy is not None:
+        reward_alt = np.load(alt_curve_npy)
+
+    # ---- fonts (Times New Roman) ----
+    mpl.rcParams['font.family'] = 'serif'
+    mpl.rcParams['font.serif'] = ['Times New Roman']
+    mpl.rcParams['font.size'] = 42
+    mpl.rcParams['pdf.fonttype'] = 42
+
+    # ---- pick 4 indices (you can swap to your rollout set if you prefer) ----
+    idxs = [
+        min(4, T - 1),
+        max(0, min(T // 4, T - 1)),
+        max(0, min(int(0.7 * T), T - 1)),
+        max(0, T - 3),
+    ]
+
+    # center-crop helper must exist in your codebase
+    thumbs = [center_crop_to_848x480(frames[i]) for i in idxs]
+
+    # ---- unify lengths for overlay ----
+    if reward_alt is not None:
+        L = min(len(reward_main), len(reward_alt))
+        r1 = reward_main[:L]
+        r2 = reward_alt[:L]
+    else:
+        L = len(reward_main)
+        r1 = reward_main
+        r2 = None
+
+    # time in seconds
+    t = np.arange(L, dtype=float) / float(frame_rate) * 10
+
+    # map frame indices -> reward indices (proportional)
+    ridxs = [int(round(i / max(T - 1, 1) * (L - 1))) for i in idxs]
+
+    # ---- figure & layout ----
+    total_h_units = 1.0 + 1.5
+    fig_w = (out_w_each * 4) / 100.0
+    fig_h = (out_h_each * total_h_units) / 100.0
+
+    fig = plt.figure(figsize=(fig_w, fig_h), dpi=600, constrained_layout=True)
+    gs = fig.add_gridspec(nrows=2, ncols=4, height_ratios=[1.0, 1.5], hspace=0.02, wspace=0.01)
+    top_axes = [fig.add_subplot(gs[0, c]) for c in range(4)]
+    ax = fig.add_subplot(gs[1, :])
+
+    # ---- top thumbnails ----
+    for ax_img, im in zip(top_axes, thumbs):
+        ax_img.imshow(im)
+        ax_img.set_xticks([]); ax_img.set_yticks([])
+
+    # ---- bottom curves ----
+    label_fs, tick_fs = 50, 50
+    lw = 6
+
+    ax.plot(t, r1, linewidth=lw, label="Proposed Model")
+    if r2 is not None:
+        ax.plot(t, r2, linewidth=lw, label="ReWiND Model")
+        ax.legend(fontsize=38, frameon=False, loc="lower right")
+
+    ax.set_ylim(-0.05, 1.05)
+    ax.set_xlabel("Time (s)", fontsize=label_fs)
+    ax.set_ylabel("Predicted Progress", fontsize=label_fs)
+    ax.grid(True, alpha=0.3)
+    ax.tick_params(axis='both', labelsize=tick_fs)
+
+    y_min_ax, y_max_ax = ax.get_ylim()
+
+    # ---- vertical dashed segments + connectors ----
+    for i, ridx in enumerate(ridxs):
+        xi = float(t[ridx])
+        vals = [float(r1[ridx])]
+        if r2 is not None:
+            vals.append(float(r2[ridx]))
+
+        vmin = min(vals)
+        vmax = max(vals)
+
+        # enforce a minimum height with symmetric padding
+        span = max(vmax - vmin + 2 * dash_pad, dash_min_height)
+        y0 = (vmin + vmax) / 2.0 - span / 2.0
+        y1 = (vmin + vmax) / 2.0 + span / 2.0
+
+        # clamp to axis limits
+        y0 = max(y0, y_min_ax)
+        y1 = min(y1, y_max_ax)
+
+        # vertical dashed line at x = xi
+        ax.vlines(xi, y0, y1, linestyles=dash_ls, linewidth=dash_lw, color=guide_color, alpha=0.9)
+
+        # connector from thumbnail bottom-center to the midpoint of the dashed segment
+        y_mid = (y0 + y1) / 2.0
+        con = ConnectionPatch(
+            xyA=(0.5, 0.0), coordsA=top_axes[i].transAxes,   # bottom center of image axes
+            xyB=(xi, y_mid),   coordsB=ax.transData,         # midpoint of dashed segment
+            arrowstyle='-', linestyle='-', linewidth=conn_lw, color=conn_color, alpha=0.95
+        )
+        fig.add_artist(con)
+
+    # ---- save & return RGB array ----
+    fig.savefig(save_path, format="pdf", bbox_inches="tight")
+
+    canvas = FigureCanvas(fig)
+    canvas.draw()
+    import numpy as np
+    img = np.frombuffer(canvas.buffer_rgba(), dtype=np.uint8).copy()
+    img = img.reshape(canvas.get_width_height()[::-1] + (4,))[:, :, :3]
+    plt.close(fig)
+    return img
+
 
 def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, episode_num, x_offset=30, frame_gap=None):
     # === CONFIGURATION ===
@@ -478,6 +625,9 @@ def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, e
     combined_frames = []
     smoothed = piecewise_transform(smoothed)
     overview = draw_overview_panel(frames_middle, smoothed, frame_rate, save_path=str(episode_dir / "overview_panel.pdf"))
+    # overview = draw_overview_panel_dual(frames_middle, smoothed, frame_rate, reward_alt=gt, save_path=str(episode_dir / "overview_panel_dual.pdf"), 
+    #                                     alt_curve_npy="/nfs_us/david_chen/reward_model_ckpt/tshirt_rollout/2025-09-18/11-52-04/fold_tshirt_regression_sparse/eval_video/2025.09.18-11.52.18/episode_21/smoothed.npy")
+    
     # save alongside the episode video
     summary_path = episode_dir / "overview_panel.png"
     # cv2 expects BGR
