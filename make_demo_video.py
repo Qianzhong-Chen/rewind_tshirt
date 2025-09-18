@@ -275,10 +275,18 @@ def piecewise_transform(arr: np.ndarray) -> np.ndarray:
     
     return result
 
+# success rollout
+# def piecewise_transform_raw(arr: np.ndarray) -> np.ndarray:
+#     result = arr.copy()
+#     mask1 = (arr >= 0.76) & (arr <= 1.0)
+#     result[mask1] = np.minimum((arr[mask1] - 0.76)*1.5 + 0.76, 1.0)
+    
+#     return result
+
 def piecewise_transform_raw(arr: np.ndarray) -> np.ndarray:
     result = arr.copy()
-    mask1 = (arr >= 0.76) & (arr <= 1.0)
-    result[mask1] = np.minimum((arr[mask1] - 0.76)*1.5 + 0.76, 1.0)
+    mask1 = (arr >= 0.7) & (arr <= 1.0)
+    result[mask1] = np.minimum((arr[mask1] - 0.7)* 3.5 + 0.7, 1.0)
     
     return result
 
@@ -349,13 +357,13 @@ def draw_overview_panel(frames: list[np.ndarray],
     mpl.rcParams['font.size'] = 42
     mpl.rcParams['pdf.fonttype'] = 42  # embed fonts in PDF
     
-    # demo
-    idxs = [min(4, T-1), max(0, min(T//4, T-1)),
-            max(0, min(int(0.7*T), T-1)), max(0, T-3)]
+    # # demo
+    # idxs = [min(4, T-1), max(0, min(T//4, T-1)),
+    #         max(0, min(int(0.7*T), T-1)), max(0, T-3)]
     
-    # # rollout
-    # idxs = [max(0, min(T//4, T-1)), max(0, min(int(0.61*T), T-1)),
-    #         max(0, min(int(0.70*T), T-1)), max(0, T-20)]
+    # rollout
+    idxs = [max(0, min(T//4, T-1)), max(0, min(int(0.61*T), T-1)),
+            max(0, min(int(0.70*T), T-1)), max(0, T-20)]
 
     # crop thumbnails to 848x480
     thumbs = [center_crop_to_848x480(frames[i]) for i in idxs]
@@ -389,7 +397,7 @@ def draw_overview_panel(frames: list[np.ndarray],
     ylim = ax.get_ylim()
     ax.set_ylim(-0.05, 1.05)
     ax.set_xlabel("Time (s)", fontsize=label_fs)
-    ax.set_ylabel("Predicted Reward", fontsize=label_fs)
+    ax.set_ylabel("Predicted Progress", fontsize=label_fs)
     ax.grid(True, alpha=0.3)
     ax.tick_params(axis='both', labelsize=tick_fs)
 

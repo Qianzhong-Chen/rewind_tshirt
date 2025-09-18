@@ -659,8 +659,8 @@ class RewindRewardWorkspace:
                         # "episode_20250814_005005_ad7edcc7.npy.mp4",
                         # "episode_20250814_005959_6a5444bb.npy.mp4",
                         # "episode_20250814_011842_ade669f9.npy.mp4",
-                        "episode_20250814_015208_23313c8b.npy.mp4",
-                        # "episode_20250814_020034_54fb6e97.npy.mp4",
+                        # "episode_20250814_015208_23313c8b.npy.mp4",
+                        "episode_20250814_020034_54fb6e97.npy.mp4",
                     ]
         
         all_episodes = [
