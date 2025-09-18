@@ -655,11 +655,12 @@ class RewindRewardWorkspace:
         x_offset = 18
         data_dir = cfg.eval.raw_data_dir
         run_times = cfg.eval.raw_data_run_times
+        ep_choice = ["episode_20250912_172129_5c03c80d.npy.mp4"]
         # Get all valid episode paths
         all_episodes = [
             os.path.join(data_dir, f)
             for f in os.listdir(data_dir)
-            if f.startswith("episode_")
+            if f.startswith("episode_") and f in ep_choice
         ]
         eval_list = all_episodes
         
@@ -719,7 +720,7 @@ class RewindRewardWorkspace:
                     state = torch.zeros_like(state, device=self.device)
                 
                 reward_pred = reward_model(img_emb, lang_emb, state, lens)  # (B, T)
-                reward_pred *= 11
+                reward_pred *= 9
                 pred = torch.clip(reward_pred, 0, 1)  # (B, T)
                 raw_item = pred[0, cfg.model.n_obs_steps].item()
                 smoothed_item = raw_item

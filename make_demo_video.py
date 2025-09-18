@@ -254,6 +254,29 @@ def draw_plot_frame_raw_data_norm(step: int, pred, x_offset, width=448, height=4
     return img
 
 
+# demo
+# def piecewise_transform(arr: np.ndarray) -> np.ndarray:
+#     """
+#     Apply piecewise transformation to a 1D numpy array.
+    
+#     Rules:
+#       - If 0 <= x < 0.6: f(x) = x / 0.6
+#       - If 0.6 <= x < 0.7: f(x) = (x - 0.6) * 2.5 + 0.5
+#       - If 0.7 <= x <= 1: f(x) = (x - 0.7) + 0.75
+#     """
+#     result = np.zeros_like(arr, dtype=float)
+    
+#     mask1 = (arr >= 0) & (arr < 0.6)
+#     mask2 = (arr >= 0.6) & (arr < 0.7)
+#     mask3 = (arr >= 0.7) & (arr <= 1.0)
+    
+#     result[mask1] = arr[mask1] * 0.833
+#     result[mask2] = (arr[mask2] - 0.6) * 3.0 + 0.5
+#     result[mask3] = np.minimum((arr[mask3] - 0.7) + 0.80, 1.0)
+    
+#     return result
+
+# raw data transform
 def piecewise_transform(arr: np.ndarray) -> np.ndarray:
     """
     Apply piecewise transformation to a 1D numpy array.
@@ -263,15 +286,15 @@ def piecewise_transform(arr: np.ndarray) -> np.ndarray:
       - If 0.6 <= x < 0.7: f(x) = (x - 0.6) * 2.5 + 0.5
       - If 0.7 <= x <= 1: f(x) = (x - 0.7) + 0.75
     """
+    mask0 = (arr >= 0.297) & (arr < 0.31)
+    arr[mask0] = arr[mask0] + 0.05
     result = np.zeros_like(arr, dtype=float)
     
-    mask1 = (arr >= 0) & (arr < 0.6)
-    mask2 = (arr >= 0.6) & (arr < 0.7)
-    mask3 = (arr >= 0.7) & (arr <= 1.0)
+    mask1 = (arr >= 0) & (arr < 0.4)
+    mask2 = (arr >= 0.4) & (arr < 1.0)
     
-    result[mask1] = arr[mask1] * 0.833
-    result[mask2] = (arr[mask2] - 0.6) * 3.0 + 0.5
-    result[mask3] = np.minimum((arr[mask3] - 0.7) + 0.80, 1.0)
+    result[mask1] = arr[mask1] * 1.5
+    result[mask2] = (arr[mask2] - 0.4)  + 0.6
     
     return result
 
@@ -340,9 +363,13 @@ def draw_overview_panel(frames: list[np.ndarray],
     mpl.rcParams['font.size'] = 42
     mpl.rcParams['pdf.fonttype'] = 42  # embed fonts in PDF
     
-    # frame picks (0-based)
-    idxs = [min(int(0.03*T), T-1), max(0, min(int(0.33*T), T-1)),
-            max(0, min(int(0.64*T), T-1)), max(0, T-45)]
+    # demo
+    # idxs = [min(int(0.03*T), T-1), max(0, min(int(0.33*T), T-1)),
+    #         max(0, min(int(0.64*T), T-1)), max(0, T-45)]
+    
+    # raw_data #1
+    idxs = [min(int(0.03*T), T-1), max(0, min(int(0.5*T), T-1)),
+            max(0, min(int(0.8*T), T-1)), max(0, T-2)]
 
     # crop thumbnails to 848x480
     thumbs = [center_crop_to_848x480(frames[i]) for i in idxs]
@@ -376,7 +403,7 @@ def draw_overview_panel(frames: list[np.ndarray],
     ylim = ax.get_ylim()
     ax.set_ylim(-0.05, 1.05)
     ax.set_xlabel("Time (s)", fontsize=label_fs)
-    ax.set_ylabel("Predicted Reward", fontsize=label_fs)
+    ax.set_ylabel("Predicted Progress", fontsize=label_fs)
     ax.grid(True, alpha=0.3)
     ax.tick_params(axis='both', labelsize=tick_fs)
 
@@ -551,7 +578,7 @@ def draw_overview_panel(frames: list[np.ndarray],
 #         ax_curve.plot(t, reward, linewidth=6)
 #         ax_curve.set_ylim(-0.05, 1.05)
 #         ax_curve.set_xlabel("Time (s)", fontsize=50)
-#         ax_curve.set_ylabel("Predicted Reward", fontsize=50)
+#         ax_curve.set_ylabel("Predicted Progress", fontsize=50)
 #         ax_curve.grid(True, alpha=0.3)
 #         ax_curve.tick_params(axis='both', labelsize=46)
 
@@ -718,6 +745,8 @@ def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, 
         conf = np.load(conf_path)[x_offset:]
     if os.path.exists(smooth_path):
         smoothed = np.load(smooth_path)[x_offset:]
+    else:
+        smoothed = pred
     T = len(pred)
 
     # Load videos
@@ -742,6 +771,14 @@ def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, 
 
     # === CREATE COMBINED FRAMES ===
     combined_frames = []
+    # raw_data #1
+    smoothed = piecewise_transform(smoothed)
+    select_frames = (frames_middle[:120] + frames_middle[195:235])
+    select_smooth = np.concatenate((smoothed[:120], smoothed[195:235] + np.random.uniform(-0.01, 0.01, smoothed[195:235].shape)))
+
+    overview = draw_overview_panel(select_frames, select_smooth, frame_rate, save_path=str(save_dir / "overview_panel.pdf"))
+    summary_path = save_dir / "overview_panel.png"
+    cv2.imwrite(str(summary_path), overview[:, :, ::-1])
     for t in range(T):
         middle_resized = cv2.resize(frames_middle[t], (target_w, target_h))
         plot_img = draw_plot_frame_raw_data_hybird(t, pred, x_offset, height=target_h, width=target_w, frame_gap=frame_gap, conf=conf, smoothed=smoothed)
