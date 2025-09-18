@@ -46,7 +46,7 @@ class RewindRewardWorkspace:
         # self.save_dir = Path(f'{cfg.general.project_name}/{cfg.general.task_name}')
         # TODO: temp fix for us05 saving
         datetime_str = datetime.now().strftime("%Y-%m-%d/%H-%M-%S")
-        self.save_dir = Path(f'/nfs_us/david_chen/reward_model_ckpt/{datetime_str}/{cfg.general.project_name}/{cfg.general.task_name}')
+        self.save_dir = Path(f'/nfs_us/david_chen/reward_model_ckpt/tshirt_rollout/{datetime_str}/{cfg.general.task_name}')
         self.save_dir.mkdir(parents=True, exist_ok=True)
         print(f"[Init] Logging & ckpts to: {self.save_dir}")
 
@@ -790,15 +790,20 @@ class RewindRewardWorkspace:
         # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_140000_loss_0.002.pt"
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_140000_loss_0.006.pt"
         
-        # # 0904 SOTA model
-        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_010000_loss_0.009.pt"
-        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_010000_loss_0.035.pt"
-        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_050000_loss_0.002.pt"
-        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_050000_loss_0.002.pt"
+        # SOTA 0904
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_030000_loss_0.006.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_030000_loss_0.023.pt"
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.005.pt"
+        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_050000_loss_0.002.pt"
+        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_050000_loss_0.002.pt"
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_055000_loss_0.004.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_055000_loss_0.004.pt"
+
         
-        # 0908 No rewind ablation
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.002.pt"
+        # # 0908 No rewind ablation
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.002.pt"
         
         
         anno_type = cfg.eval.mode
@@ -844,9 +849,13 @@ class RewindRewardWorkspace:
         reward_model.eval(); stage_model.eval()
 
         # save path
-        datetime_str = datetime.now().strftime("%Y.%m.%d-%H.%M.%S")
-        rollout_save_dir =  Path(self.save_dir) / "eval_video" / f"{datetime_str}"  # convert to Path first
+        datetime_str = datetime.now().strftime("%Y.%m.%d/%H.%M.%S")
+        rollout_save_dir =  Path(self.save_dir) / "eval_raw"   # convert to Path first
         rollout_save_dir.mkdir(parents=True, exist_ok=True)
+        ckpt_name = reward_model_path.stem; ckpt_note_path = rollout_save_dir / "ckpt_note.txt"
+        with open(ckpt_note_path, "w", encoding="utf-8") as f:
+            f.write(f"Reward model: {ckpt_name}\n")
+            
         OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
 
         
@@ -855,12 +864,21 @@ class RewindRewardWorkspace:
         data_dir = cfg.eval.raw_data_dir
         run_times = cfg.eval.raw_data_run_times
         # Get all valid episode paths
+        ep_choices = [
+                        # "episode_20250814_005005_ad7edcc7.npy.mp4",
+                        # "episode_20250814_005959_6a5444bb.npy.mp4",
+                        # "episode_20250814_011842_ade669f9.npy.mp4",
+                        "episode_20250814_015208_23313c8b.npy.mp4",
+                        # "episode_20250814_020034_54fb6e97.npy.mp4",
+                    ]
+        
         all_episodes = [
             os.path.join(data_dir, f)
             for f in os.listdir(data_dir)
-            if f.startswith("episode_")
+            if f.startswith("episode_") and f in ep_choices
         ]
-        eval_list = all_episodes
+        # eval_list = all_episodes
+        
         
         random.seed(cfg.general.seed)
         # randomly select eval_list
@@ -957,203 +975,6 @@ class RewindRewardWorkspace:
                 print(f"[Eval Video] episode_{ep_index} video production failed: {e}")
             
             print(f"[Eval Video] episode_{ep_index} results saved to: {save_dir}")
-
-
-    def eval_raw_data_hybird(self):
-        import random
-        cfg = self.cfg
-        state_normalizer = get_normalizer_from_calculated(cfg.general.state_norm_path, self.device)
-        
-
-        # --- encoders ---
-        # # DINO
-        # vis_encoder = FrozenVisionEncoder(cfg.encoders.vision_ckpt, self.device)
-        # text_encoder = FrozenTextEncoder(cfg.encoders.text_ckpt, self.device)
-        # vis_dim = vis_encoder.model.config.hidden_size
-        # txt_dim = text_encoder.model.config.hidden_size
-
-        # CLIP
-        clip_encoder = FrozenCLIPEncoder(cfg.encoders.vision_ckpt, self.device)
-        vis_encoder = clip_encoder
-        text_encoder = clip_encoder
-        vis_dim = 512
-        txt_dim = 512
-
-        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_best.pt"
-        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_best.pt"
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_085000_loss_0.005.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_085000_loss_0.006.pt"
-
-        task_assign_dict = {
-                            "dense": "/nfs_old/david_chen/dataset/hlm_tshirt_reward_select",
-                            "sparse": "/nfs_old/dataset/tshirt_reward_yam_only/folding_tshirt",
-                            }
-        datetime_str = datetime.now().strftime("%Y.%m.%d-%H.%M.%S")
-        for anno_type in task_assign_dict.keys():
-            for data_dir in task_assign_dict.values():
-                if anno_type == "sparse":
-                    num_classes = cfg.model.num_classes_sparse
-                else:
-                    num_classes = cfg.model.num_classes_dense
-                    
-                if task_assign_dict[anno_type] == data_dir:
-                    eval_type = "train"
-                else:
-                    eval_type = "valid"
-                    
-                print(f"[EVAL_HYBIRD] Evaluating {anno_type} data in {data_dir}, eval type: {eval_type}")
-            
-                # --- reward_model ---
-                reward_model = RewardTransformer(d_model=cfg.model.d_model, 
-                                        vis_emb_dim=vis_dim, 
-                                        text_emb_dim=txt_dim,
-                                        state_dim=cfg.model.state_dim,
-                                        n_layers=cfg.model.n_layers,
-                                        n_heads=cfg.model.n_heads,
-                                        dropout=cfg.model.dropout,
-                                        max_seq_len=cfg.model.max_seq_len,
-                                        num_cameras=len(self.camera_names),
-                                        ).to(self.device)
-                stage_model = StageTransformer(d_model=cfg.model.d_model, 
-                                        vis_emb_dim=vis_dim, 
-                                        text_emb_dim=txt_dim,
-                                        state_dim=cfg.model.state_dim,
-                                        n_layers=cfg.model.n_layers,
-                                        n_heads=cfg.model.n_heads,
-                                        dropout=cfg.model.dropout,
-                                        max_seq_len=cfg.model.max_seq_len,
-                                        num_cameras=len(self.camera_names),
-                                        num_classes_sparse=cfg.model.num_classes_sparse,
-                                        num_classes_dense=cfg.model.num_classes_dense
-                                        ).to(self.device)
-
-
-                # Load checkpoints
-                reward_ckpt = torch.load(reward_model_path, map_location=self.device)
-                stage_ckpt = torch.load(stage_model_path, map_location=self.device)
-                # Load weights
-                reward_model.load_state_dict(reward_ckpt["model"])
-                stage_model.load_state_dict(stage_ckpt["model"])
-                # Move to device
-                reward_model.to(self.device)
-                stage_model.to(self.device)
-                reward_model.eval(); stage_model.eval()
-
-                # save path
-
-                rollout_save_dir =  Path(self.save_dir) / "eval_video" / f"{datetime_str}" / f"{anno_type}" / f"{eval_type}"  # convert to Path first
-                rollout_save_dir.mkdir(parents=True, exist_ok=True)
-                OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
-
-                
-                # x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
-                x_offset = 0
-                run_times = cfg.eval.raw_data_run_times
-                # Get all valid episode paths
-                all_episodes = [
-                    os.path.join(data_dir, f)
-                    for f in os.listdir(data_dir)
-                    if f.startswith("episode_")
-                ]
-                eval_list = all_episodes
-                
-                random.seed(cfg.general.seed)
-                # randomly select eval_list
-                if len(all_episodes) >= run_times:
-                    eval_list = random.sample(all_episodes, run_times)
-                else:
-                    raise ValueError(f"Not enough episodes in {data_dir} to sample {run_times} items.")
-
-
-                for i in range(run_times):
-                    data_path = eval_list[i]
-                    pred_ep_result = [0]
-                    # randomly select 
-                    ep_index = os.path.basename(data_path)
-                    frame_num = get_frame_num(data_path)
-                    traj_joint_data = get_traj_data(data_path)
-                    print(f"[EVAL_RAW]: process {i+1}/{run_times} episode: {ep_index}")
-                    for idx in tqdm(range(frame_num), desc=f"Processing data"):
-                        batch = get_frame_data_fast(path=data_path, 
-                                            traj_joint_data=traj_joint_data, 
-                                            idx=idx,
-                                            n_obs_steps=cfg.model.n_obs_steps,
-                                            frame_gap=cfg.model.frame_gap,
-                                            max_rewind_steps=cfg.model.max_rewind_steps,
-                                            camera_names=cfg.general.camera_names,
-                                            device=self.device)
-                        
-                        B, T = batch["image_frames"][self.camera_names[0]].shape[:2]
-                        img_list = []
-                        for key in self.camera_names:
-                            imgs = batch["image_frames"][key].flatten(0, 1).to(self.device) # (B*T, C, H, W)
-                            img_list.append(imgs)
-                        
-                        lang_strs = ["fold the tshirt"]
-                        lens = torch.tensor([1+cfg.model.n_obs_steps], dtype=torch.int32, device=self.device)
-                        state = batch["state"].to(self.device)
-                        state = state_normalizer.normalize(state)
-                        
-                        # # DINO
-                        # # img_emb = [vis_encoder(imgs).view(B, T, -1) for imgs in img_list]  
-                        # # img_emb = torch.stack(img_emb, dim=1)
-                        # imgs_all = torch.cat(img_list, dim=0)  # list of tensors (B*T, C, H, W) → (N*B*T, C, H, W)
-                        # img_emb = vis_encoder(imgs_all)
-                        # img_emb = img_emb.view(len(img_list), B, T, -1).permute(1, 0, 2, 3)
-                        # lang_emb = text_encoder(lang_strs)
-
-                        # CLIP
-                        # img_emb = [clip_encoder.encode_image(imgs).view(B, T, -1) for imgs in img_list]
-                        # img_emb = torch.stack(img_emb, dim=1)
-                        imgs_all = torch.cat(img_list, dim=0)  # (N * B * T, C, H, W)
-                        img_emb = clip_encoder.encode_image(imgs_all)  # (N * B * T, D)
-                        img_emb = img_emb.view(len(img_list), B, T, -1).permute(1, 0, 2, 3)  # (B, N, T, D)
-                        if cfg.model.dense_annotation:
-                            lang_emb = torch.zeros((B, T, txt_dim), dtype=torch.float32, device=self.device)  # (B, T, txt_dim)
-                            for j in range(B):
-                                lang_emb[j, :, :] = clip_encoder.encode_text(lang_strs[i])
-                        else:
-                            lang_emb = clip_encoder.encode_text(lang_strs) # lang_emb: (B, txt_dim)
-
-                        if cfg.model.no_state:
-                            state = torch.zeros_like(state, device=self.device)
-                            
-                        with torch.no_grad():
-                            stage_prob = stage_model(img_emb, lang_emb, state, lens, scheme=cfg.eval.mode).softmax(dim=-1)  # (B, T, num_classes)
-                            stage_pred = stage_prob.argmax(dim=-1)  # (B, T)
-                        reward_pred = reward_model(img_emb, lang_emb, state, lens, scheme=cfg.eval.mode)  # (B, T)
-                        pred = torch.clip(reward_pred + stage_pred.float(), 0, num_classes-1)  # (B, T)
-                        
-                        # if idx < (cfg.model.n_obs_steps * cfg.model.frame_gap + 100):
-                        #     smoothed_item = pred[0, cfg.model.n_obs_steps].item()
-                        # elif abs(frame_num - idx) < 100:
-                        #     smoothed_item = pred[0, cfg.model.n_obs_steps].item()
-                        # else:
-                        #     smoothed_item = torch.mean(pred[0, 1:1+cfg.model.n_obs_steps]).item() 
-                        # smoothed_item = min(max(smoothed_item, pred_ep_result[-1]-0.0125), pred_ep_result[-1] + 0.0125)
-                        
-                        smoothed_item = pred[0, cfg.model.n_obs_steps].item()
-                        pred_ep_result.append(smoothed_item)
-                        
-
-                    # save results
-                    save_dir = plot_episode_result_raw_data(ep_index, pred_ep_result, x_offset, rollout_save_dir)
-                    np.save(Path(save_dir) / "pred.npy", np.array(pred_ep_result))
-
-                    print(f"[Eval Video] episode_{ep_index} making video...")
-                    left_video_path = Path(f"{data_path}/left_camera-images-rgb.mp4")
-                    middle_video_path = Path(f"{data_path}/top_camera-images-rgb.mp4")
-                    right_video_path = Path(f"{data_path}/right_camera-images-rgb.mp4")
-                    
-                    try:
-                        if anno_type == "sparse":
-                            produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, right_video_path, ep_index, cfg.model.sparse_annotation_list, x_offset)
-                        else:
-                            produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, right_video_path, ep_index, cfg.model.dense_annotation_list, x_offset)
-                    except Exception as e:
-                        print(f"[Eval Video] episode_{ep_index} video production failed: {e}")
-                    
-                    print(f"[Eval Video] episode_{ep_index} results saved to: {save_dir}")
 
 
     

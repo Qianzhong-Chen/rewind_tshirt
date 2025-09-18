@@ -112,11 +112,11 @@ cfg:
   eval:
     run_times: 50        # number of rollouts
     video_run_times: 6 # number of episodes to evaluate in video
-    raw_data_run_times: 36
+    raw_data_run_times: 1
     eval_frame_gap: 10
-    # ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-08-30/04-30-24/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/checkpoints"
-    # ckpt_path: "/home/david_chen/rewind_tshirt/outputs/2025-09-04/01-51-16/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/checkpoints" # SOTA hybird with first frames
-    ckpt_path: "/nfs_us/david_chen/reward_model_ckpt/2025-09-07/16-54-33/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/checkpoints" # No rewind ablation
+    # ckpt_path: "/nfs_us/david_chen/reward_model_ckpt/2025-08-30/04-30-24/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/checkpoints"
+    ckpt_path: "/nfs_us/david_chen/reward_model_ckpt/2025-09-04/01-51-16/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/checkpoints" # SOTA hybird with first frames
+    # ckpt_path: "/nfs_us/david_chen/reward_model_ckpt/2025-09-07/16-54-33/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/checkpoints" # No rewind ablation
 
     # # Sparse
     mode: "sparse"
@@ -126,7 +126,8 @@ cfg:
     # raw_data_dir: "/nfs_old/dataset/tshirt_reward_yam_only/folding_tshirt"
     # raw_data_dir: "/nfs_old/david_chen/dataset/real_eval/sz_03_0813" # real rollout, 17 trajs
     # raw_data_dir: "/nfs_old/david_chen/policy_rollout/hlm_40k_rollout"
-    raw_data_dir: "/nfs_us/david_chen/pi0_rollout/hlm_40k_rollout"
+    # raw_data_dir: "/nfs_us/david_chen/pi0_rollout/hlm_40k_rollout"
+    raw_data_dir: "/nfs_us/david_chen/pi0_rollout/sz_03_0813"
     
     # # Dense
     # mode: "dense"

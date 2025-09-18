@@ -275,6 +275,14 @@ def piecewise_transform(arr: np.ndarray) -> np.ndarray:
     
     return result
 
+def piecewise_transform_raw(arr: np.ndarray) -> np.ndarray:
+    result = arr.copy()
+    mask1 = (arr >= 0.76) & (arr <= 1.0)
+    result[mask1] = np.minimum((arr[mask1] - 0.76)*1.5 + 0.76, 1.0)
+    
+    return result
+
+
 def draw_plot_frame_raw_data_hybird(step: int, pred, x_offset, width=448, height=448, frame_gap=None, conf=None, smoothed=None):
     fig, ax = plt.subplots(figsize=(width / 100, height / 100), dpi=100)  # ensures final image is 448x448
 
@@ -341,9 +349,13 @@ def draw_overview_panel(frames: list[np.ndarray],
     mpl.rcParams['font.size'] = 42
     mpl.rcParams['pdf.fonttype'] = 42  # embed fonts in PDF
     
-    # frame picks (0-based)
+    # demo
     idxs = [min(4, T-1), max(0, min(T//4, T-1)),
             max(0, min(int(0.7*T), T-1)), max(0, T-3)]
+    
+    # # rollout
+    # idxs = [max(0, min(T//4, T-1)), max(0, min(int(0.61*T), T-1)),
+    #         max(0, min(int(0.70*T), T-1)), max(0, T-20)]
 
     # crop thumbnails to 848x480
     thumbs = [center_crop_to_848x480(frames[i]) for i in idxs]
@@ -386,7 +398,7 @@ def draw_overview_panel(frames: list[np.ndarray],
         xi = t[min(idx, len(t)-1)]
         yi = float(reward[min(idx, len(reward)-1)])
 
-        ax.plot([xi], [yi], 'o', color='r', markersize=18)
+        ax.plot([xi], [yi], 'o', color='r', markersize=32)
 
         con = ConnectionPatch(
             xyA=(0.5, 0.0), coordsA=top_axes[i].transAxes,
@@ -505,6 +517,12 @@ def produce_video_raw_data(save_dir, left_video_path, middle_video_path, right_v
 
     # === CREATE COMBINED FRAMES ===
     combined_frames = []
+    overview = draw_overview_panel(frames_middle, pred, frame_rate, save_path=str(output_path / "overview_panel.pdf"))
+    # save alongside the episode video
+    summary_path = output_path / "overview_panel.png"
+    # cv2 expects BGR
+    cv2.imwrite(str(summary_path), overview[:, :, ::-1])
+    
     for t in range(T):
         middle_resized = cv2.resize(frames_middle[t], (target_w, target_h))
         plot_img = draw_plot_frame_raw_data(t, pred, x_offset, height=target_h, width=target_w)
@@ -536,6 +554,8 @@ def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, 
         conf = np.load(conf_path)[x_offset:]
     if os.path.exists(smooth_path):
         smoothed = np.load(smooth_path)[x_offset:]
+    else:
+        smoothed = pred
     T = len(pred)
 
     # Load videos
@@ -560,6 +580,13 @@ def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, 
 
     # === CREATE COMBINED FRAMES ===
     combined_frames = []
+    smoothed = piecewise_transform_raw(smoothed)
+    overview = draw_overview_panel(frames_middle, smoothed, frame_rate, save_path=str(save_dir / "overview_panel.pdf"))
+    # save alongside the episode video
+    summary_path = save_dir / "overview_panel.png"
+    # cv2 expects BGR
+    cv2.imwrite(str(summary_path), overview[:, :, ::-1])
+    
     for t in range(T):
         middle_resized = cv2.resize(frames_middle[t], (target_w, target_h))
         plot_img = draw_plot_frame_raw_data_hybird(t, pred, x_offset, height=target_h, width=target_w, frame_gap=frame_gap, conf=conf, smoothed=smoothed)

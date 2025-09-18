@@ -35,7 +35,7 @@ class RewindRewardWorkspace:
         # self.save_dir = Path(f'{cfg.general.project_name}/{cfg.general.task_name}')
         # TODO: temp fix for us05 saving
         datetime_str = datetime.now().strftime("%Y-%m-%d/%H-%M-%S")
-        self.save_dir = Path(f'/nfs_us/david_chen/reward_model_ckpt/{datetime_str}/{cfg.general.project_name}/{cfg.general.task_name}')
+        self.save_dir = Path(f'/nfs_us/david_chen/reward_model_ckpt/tshirt_rollout/{datetime_str}/{cfg.general.task_name}')
         self.save_dir.mkdir(parents=True, exist_ok=True)
         print(f"[Init] Logging & ckpts to: {self.save_dir}")
 
@@ -651,16 +651,24 @@ class RewindRewardWorkspace:
 
         
         # x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
-        x_offset = 18
+        x_offset = 0
         data_dir = cfg.eval.raw_data_dir
         run_times = cfg.eval.raw_data_run_times
         # Get all valid episode paths
+        ep_choices = [
+                        # "episode_20250814_005005_ad7edcc7.npy.mp4",
+                        # "episode_20250814_005959_6a5444bb.npy.mp4",
+                        # "episode_20250814_011842_ade669f9.npy.mp4",
+                        "episode_20250814_015208_23313c8b.npy.mp4",
+                        # "episode_20250814_020034_54fb6e97.npy.mp4",
+                    ]
+        
         all_episodes = [
             os.path.join(data_dir, f)
             for f in os.listdir(data_dir)
-            if f.startswith("episode_")
+            if f.startswith("episode_") and f in ep_choices
         ]
-        eval_list = all_episodes
+        # eval_list = all_episodes
         
         random.seed(cfg.general.seed)
         # randomly select eval_list

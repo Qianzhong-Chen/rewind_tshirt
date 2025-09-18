@@ -4,10 +4,10 @@ from typing import Optional, Tuple
 class RegressionConfidenceSmoother:
     def __init__(
         self,
-        window_size: int = 15,
-        beta: float = 3.0,
+        window_size: int = 10,
+        beta: float = 5.0,
         eps: float = 1e-6,
-        low_conf_th: float = 0.9,
+        low_conf_th: float = 0.95,
         value_range: Optional[Tuple[float, float]] = None,  # e.g., (min_val, max_val)
     ):
         """
@@ -56,6 +56,8 @@ class RegressionConfidenceSmoother:
 
         # low confidence: skip update, return last smoothed
         if conf_t < self.low_conf_th:
+            self.hist_vals.append(self.last_smoothed)
+            self.hist_confs.append(self.low_conf_th)
             return self.last_smoothed
 
         # accept point, update history
