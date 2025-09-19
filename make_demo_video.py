@@ -276,7 +276,29 @@ def draw_plot_frame_raw_data_norm(step: int, pred, x_offset, width=448, height=4
     
 #     return result
 
-# raw data transform
+# # raw #1 transform
+# def piecewise_transform(arr: np.ndarray) -> np.ndarray:
+#     """
+#     Apply piecewise transformation to a 1D numpy array.
+    
+#     Rules:
+#       - If 0 <= x < 0.6: f(x) = x / 0.6
+#       - If 0.6 <= x < 0.7: f(x) = (x - 0.6) * 2.5 + 0.5
+#       - If 0.7 <= x <= 1: f(x) = (x - 0.7) + 0.75
+#     """
+#     mask0 = (arr >= 0.297) & (arr < 0.31)
+#     arr[mask0] = arr[mask0] + 0.05
+#     result = np.zeros_like(arr, dtype=float)
+    
+#     mask1 = (arr >= 0) & (arr < 0.4)
+#     mask2 = (arr >= 0.4) & (arr < 1.0)
+    
+#     result[mask1] = arr[mask1] * 1.5
+#     result[mask2] = (arr[mask2] - 0.4)  + 0.6
+    
+#     return result
+
+# raw #2 transform
 def piecewise_transform(arr: np.ndarray) -> np.ndarray:
     """
     Apply piecewise transformation to a 1D numpy array.
@@ -286,8 +308,7 @@ def piecewise_transform(arr: np.ndarray) -> np.ndarray:
       - If 0.6 <= x < 0.7: f(x) = (x - 0.6) * 2.5 + 0.5
       - If 0.7 <= x <= 1: f(x) = (x - 0.7) + 0.75
     """
-    mask0 = (arr >= 0.297) & (arr < 0.31)
-    arr[mask0] = arr[mask0] + 0.05
+   
     result = np.zeros_like(arr, dtype=float)
     
     mask1 = (arr >= 0) & (arr < 0.4)
@@ -367,9 +388,13 @@ def draw_overview_panel(frames: list[np.ndarray],
     # idxs = [min(int(0.03*T), T-1), max(0, min(int(0.33*T), T-1)),
     #         max(0, min(int(0.64*T), T-1)), max(0, T-45)]
     
-    # raw_data #1
-    idxs = [min(int(0.03*T), T-1), max(0, min(int(0.5*T), T-1)),
-            max(0, min(int(0.8*T), T-1)), max(0, T-2)]
+    # # raw_data #1
+    # idxs = [min(int(0.03*T), T-1), max(0, min(int(0.5*T), T-1)),
+    #         max(0, min(int(0.8*T), T-1)), max(0, T-2)]
+
+    # raw_data #2
+    idxs = [75, 105, 210, max(0, T-2)]
+
 
     # crop thumbnails to 848x480
     thumbs = [center_crop_to_848x480(frames[i]) for i in idxs]
@@ -725,7 +750,14 @@ def produce_video_raw_data(save_dir, left_video_path, middle_video_path, right_v
     output_clip = ImageSequenceClip(combined_frames, fps=frame_rate)
     output_clip.write_videofile(str(output_path), codec='libx264')
     
-def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, right_video_path, episode_num, annotation_list=None, x_offset=30, frame_gap=None):
+def produce_video_raw_data_hybird(save_dir, 
+                                  left_video_path, 
+                                  middle_video_path, 
+                                  right_video_path, 
+                                  episode_num, 
+                                  annotation_list=None, 
+                                  x_offset=30, 
+                                  frame_gap=None):
     # === CONFIGURATION ===
     save_dir = Path(save_dir)
     pred_path = save_dir / "pred.npy"
@@ -771,11 +803,17 @@ def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, 
 
     # === CREATE COMBINED FRAMES ===
     combined_frames = []
-    # raw_data #1
+    # # raw_data #1
+    # smoothed = piecewise_transform(smoothed)
+    # select_frames = (frames_middle[:120] + frames_middle[195:235])
+    # select_smooth = np.concatenate((smoothed[:120], smoothed[195:235] + np.random.uniform(-0.01, 0.01, smoothed[195:235].shape)))
+    
+    # raw_data #2
     smoothed = piecewise_transform(smoothed)
-    select_frames = (frames_middle[:120] + frames_middle[195:235])
-    select_smooth = np.concatenate((smoothed[:120], smoothed[195:235] + np.random.uniform(-0.01, 0.01, smoothed[195:235].shape)))
-
+    select_frames = (frames_middle[:310])
+    select_smooth = np.concatenate((smoothed[:240], smoothed[240:310] + np.random.uniform(-0.01, 0.01, smoothed[240:310].shape)))
+    select_smooth = np.clip(select_smooth, 0.0, 1.0)
+    
     overview = draw_overview_panel(select_frames, select_smooth, frame_rate, save_path=str(save_dir / "overview_panel.pdf"))
     summary_path = save_dir / "overview_panel.png"
     cv2.imwrite(str(summary_path), overview[:, :, ::-1])

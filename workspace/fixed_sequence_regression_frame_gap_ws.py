@@ -652,10 +652,12 @@ class RewindRewardWorkspace:
 
         
         # x_offset = cfg.model.frame_gap * cfg.model.n_obs_steps
-        x_offset = 18
+        x_offset = 0
+        # x_offset = 18
         data_dir = cfg.eval.raw_data_dir
         run_times = cfg.eval.raw_data_run_times
-        ep_choice = ["episode_20250912_172129_5c03c80d.npy.mp4"]
+        # ep_choice = ["episode_20250912_172129_5c03c80d.npy.mp4"]
+        ep_choice = ["episode_20250912_171233_65de9a89.npy.mp4"]
         # Get all valid episode paths
         all_episodes = [
             os.path.join(data_dir, f)
