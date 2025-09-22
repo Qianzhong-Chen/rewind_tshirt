@@ -18,7 +18,13 @@ BASE_DIR = "/nfs_us/david_chen/reward_model_ckpt/tshirt_folding_ablation/2025-09
 BASE_DIR = "/nfs_us/david_chen/reward_model_ckpt/tshirt_folding_ablation/2025-09-08/13-34-05/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_dense_annotation/eval_video/2025.09.08-13.34.20"
 BASE_DIR = "/nfs_us/david_chen/reward_model_ckpt/2025-09-08/15-55-46/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/eval_video/2025.09.08-15.56.12"
 
-
+BASE_DIR = "/nfs_us/david_chen/reward_model_ckpt/tshirt_ablation/2025-09-20/12-14-43/use_state/eval_video/2025.09.20-12.14.57"
+BASE_DIR = "/nfs_us/david_chen/reward_model_ckpt/tshirt_ablation/2025-09-20/12-19-22/wrist_cam/eval_video/2025.09.20-12.19.42"
+BASE_DIR = "/nfs_us/david_chen/reward_model_ckpt/tshirt_ablation/2025-09-20/12-22-44/n_obs_4/eval_video/2025.09.20-12.23.20"
+BASE_DIR = "/nfs_us/david_chen/reward_model_ckpt/tshirt_ablation/2025-09-20/12-25-49/frame_gap_15/eval_video/2025.09.20-12.26.25"
+BASE_DIR = "/nfs_us/david_chen/reward_model_ckpt/tshirt_ablation/2025-09-20/12-29-10/n_obs_12/eval_video/2025.09.20-12.29.58"
+BASE_DIR = "/nfs_us/david_chen/reward_model_ckpt/tshirt_ablation/2025-09-20/12-43-45/frame_gap_60/eval_video/2025.09.20-12.44.31" \
+""
 def load_pair(ep_dir: Path) -> Optional[Tuple[np.ndarray, np.ndarray]]:
     sm_path = ep_dir / "smoothed.npy"
     # sm_path = ep_dir / "pred.npy"

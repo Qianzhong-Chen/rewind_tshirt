@@ -45,7 +45,9 @@ class RewindRewardWorkspace:
         
         # TODO: temp fix for nfs saving
         datetime_str = datetime.now().strftime("%Y-%m-%d/%H-%M-%S")
-        self.save_dir = Path(f'/nfs_us/david_chen/reward_model_ckpt/tshirt_ablation/{datetime_str}/{cfg.general.task_name}')
+        experiment_name = cfg.eval.ckpt_path.split("/")[-2]
+        self.save_dir = Path(f'/nfs_us/david_chen/reward_model_ckpt/tshirt_ablation/{datetime_str}/{experiment_name}')
+        # self.save_dir = Path(f'/nfs_us/david_chen/reward_model_ckpt/tshirt_ablation/{datetime_str}/{cfg.general.task_name}')
         # self.save_dir = Path(f'{cfg.general.project_name}/{cfg.general.task_name}')
         self.save_dir.mkdir(parents=True, exist_ok=True)
         print(f"[Init] Logging & ckpts to: {self.save_dir}")
@@ -623,13 +625,16 @@ class RewindRewardWorkspace:
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_030000_loss_0.023.pt"
         # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.002.pt"
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_050000_loss_0.002.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_050000_loss_0.005.pt"
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_050000_loss_0.002.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_050000_loss_0.005.pt"
         
         # # No rewind ablation
         # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.002.pt"
         
+        reward_model_path = Path(cfg.eval.ckpt_path) / cfg.eval.reward_model_name
+        stage_model_path = Path(cfg.eval.ckpt_path) / cfg.eval.stage_model_name
+
         if anno_type == "sparse":
             num_classes = cfg.model.num_classes_sparse
         else:
@@ -795,8 +800,8 @@ class RewindRewardWorkspace:
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_140000_loss_0.006.pt"
         
         # SOTA 0904
-        reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_030000_loss_0.006.pt"
-        stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_030000_loss_0.023.pt"
+        # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_030000_loss_0.006.pt"
+        # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_030000_loss_0.023.pt"
         # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.002.pt"
         # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_050000_loss_0.002.pt"
@@ -806,6 +811,8 @@ class RewindRewardWorkspace:
         # reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
         # stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.002.pt"
         
+        reward_model_path = Path(cfg.eval.ckpt_path) / cfg.eval.reward_model_name
+        stage_model_path = Path(cfg.eval.ckpt_path) / cfg.eval.stage_model_name
         
         anno_type = cfg.eval.mode
         if anno_type == "sparse":
