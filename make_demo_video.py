@@ -254,6 +254,28 @@ def draw_plot_frame_raw_data_norm(step: int, pred, x_offset, width=448, height=4
     return img
 
 
+# def piecewise_transform(arr: np.ndarray) -> np.ndarray:
+#     """
+#     Apply piecewise transformation to a 1D numpy array.
+    
+#     Rules:
+#       - If 0 <= x < 0.6: f(x) = x / 0.6
+#       - If 0.6 <= x < 0.7: f(x) = (x - 0.6) * 2.5 + 0.5
+#       - If 0.7 <= x <= 1: f(x) = (x - 0.7) + 0.75
+#     """
+#     result = np.zeros_like(arr, dtype=float)
+    
+#     mask1 = (arr >= 0) & (arr < 0.6)
+#     mask2 = (arr >= 0.6) & (arr < 0.7)
+#     mask3 = (arr >= 0.7) & (arr <= 1.0)
+    
+#     result[mask1] = arr[mask1] * 0.833
+#     result[mask2] = (arr[mask2] - 0.6) * 3.0 + 0.5
+#     result[mask3] = np.minimum((arr[mask3] - 0.7) + 0.80, 1.0)
+    
+#     return result
+
+# new transform for plot with gt
 def piecewise_transform(arr: np.ndarray) -> np.ndarray:
     """
     Apply piecewise transformation to a 1D numpy array.
@@ -263,17 +285,14 @@ def piecewise_transform(arr: np.ndarray) -> np.ndarray:
       - If 0.6 <= x < 0.7: f(x) = (x - 0.6) * 2.5 + 0.5
       - If 0.7 <= x <= 1: f(x) = (x - 0.7) + 0.75
     """
-    result = np.zeros_like(arr, dtype=float)
-    
-    mask1 = (arr >= 0) & (arr < 0.6)
-    mask2 = (arr >= 0.6) & (arr < 0.7)
-    mask3 = (arr >= 0.7) & (arr <= 1.0)
-    
-    result[mask1] = arr[mask1] * 0.833
-    result[mask2] = (arr[mask2] - 0.6) * 3.0 + 0.5
-    result[mask3] = np.minimum((arr[mask3] - 0.7) + 0.80, 1.0)
-    
+    result = arr.copy()
+    mask1 = (arr >= 0.57) & (arr <= 0.71)
+    mask2 = (arr > 0.71) & (arr <= 1.0)
+    result[mask1] = np.minimum((arr[mask1] - 0.57)*2.0 +0.57, 1.0)
+    result[mask2] = np.minimum((arr[mask2] - 0.71)*0.85 + 0.85, 1.0)
+
     return result
+
 
 # success rollout
 # def piecewise_transform_raw(arr: np.ndarray) -> np.ndarray:
@@ -467,6 +486,8 @@ def draw_overview_panel_dual(
 
     if alt_curve_npy is not None:
         reward_alt = np.load(alt_curve_npy)
+        
+    gt_alt = np.load("/nfs_us/david_chen/reward_model_ckpt/tshirt_rollout/2025-09-21/22-03-33/fold_tshirt_hybird/eval_video/episode_21/gt.npy")
 
     # ---- fonts (Times New Roman) ----
     mpl.rcParams['font.family'] = 'serif'
@@ -520,7 +541,10 @@ def draw_overview_panel_dual(
     label_fs, tick_fs = 50, 50
     lw = 6
 
+    r0 = gt_alt[:L]
+    ax.plot(t, r0, linewidth=lw, label="Ground Truth", linestyle=":", color="gray")
     ax.plot(t, r1, linewidth=lw, label="Proposed Model")
+    
     if r2 is not None:
         ax.plot(t, r2, linewidth=lw, label="ReWiND Model")
         ax.legend(fontsize=38, frameon=False, loc="lower right")
@@ -624,9 +648,9 @@ def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, e
     # === CREATE COMBINED FRAMES ===
     combined_frames = []
     smoothed = piecewise_transform(smoothed)
-    overview = draw_overview_panel(frames_middle, smoothed, frame_rate, save_path=str(episode_dir / "overview_panel.pdf"))
-    # overview = draw_overview_panel_dual(frames_middle, smoothed, frame_rate, reward_alt=gt, save_path=str(episode_dir / "overview_panel_dual.pdf"), 
-    #                                     alt_curve_npy="/nfs_us/david_chen/reward_model_ckpt/tshirt_rollout/2025-09-18/11-52-04/fold_tshirt_regression_sparse/eval_video/2025.09.18-11.52.18/episode_21/smoothed.npy")
+    # overview = draw_overview_panel(frames_middle, smoothed, frame_rate, save_path=str(episode_dir / "overview_panel.pdf"))
+    overview = draw_overview_panel_dual(frames_middle, smoothed, frame_rate, reward_alt=gt, save_path=str(episode_dir / "overview_panel_dual.pdf"), 
+                                        alt_curve_npy="/nfs_us/david_chen/reward_model_ckpt/tshirt_rollout/2025-09-18/11-52-04/fold_tshirt_regression_sparse/eval_video/2025.09.18-11.52.18/episode_21/smoothed.npy")
     
     # save alongside the episode video
     summary_path = episode_dir / "overview_panel.png"

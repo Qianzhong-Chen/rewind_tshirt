@@ -675,8 +675,8 @@ class RewindRewardWorkspace:
         OmegaConf.save(cfg, rollout_save_dir / "config.yaml")
         evaled_list = []
         # ep_to_run = [21, 101, 151, 263, 435, 402]
-        ep_to_run = [21, 101]
-        # ep_to_run = [21]
+        # ep_to_run = [21, 101]
+        ep_to_run = [21]
         
         for i in range(cfg.eval.video_run_times):
             ep_index = ep_to_run[i]

@@ -111,7 +111,7 @@ cfg:
 
   eval:
     run_times: 50        # number of rollouts
-    video_run_times: 2   # number of episodes to evaluate in video
+    video_run_times: 1   # number of episodes to evaluate in video
     raw_data_run_times: 1
     eval_frame_gap: 10
     # ckpt_path: "/nfs_us/david_chen/reward_model_ckpt/2025-08-30/04-30-24/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/checkpoints"
