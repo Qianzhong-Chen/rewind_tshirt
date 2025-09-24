@@ -1,0 +1,9 @@
+demo validationset plot:
+    ckpt_path: "/nfs_us/david_chen/reward_model_ckpt/2025-09-07/16-54-33/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/checkpoints" # No rewind ablation
+    reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_040000_loss_0.003.pt"
+    stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_040000_loss_0.002.pt"
+
+raw data plot:
+    ckpt_path: "/nfs_us/david_chen/reward_model_ckpt/2025-09-04/01-51-16/rewind_reward_fixed_seq_model_frame_gap_multi_stage/fold_tshirt_hybird/checkpoints" # SOTA hybird with first frames
+    reward_model_path = Path(cfg.eval.ckpt_path) / "reward_step_050000_loss_0.002.pt"
+    stage_model_path = Path(cfg.eval.ckpt_path) / "stage_step_050000_loss_0.002.pt"
