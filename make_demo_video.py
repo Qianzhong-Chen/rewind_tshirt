@@ -275,7 +275,7 @@ def draw_plot_frame_raw_data_norm(step: int, pred, x_offset, width=448, height=4
     
 #     return result
 
-# new transform for plot with gt
+# new transform for plot with gt, ep_21 special
 def piecewise_transform(arr: np.ndarray) -> np.ndarray:
     """
     Apply piecewise transformation to a 1D numpy array.
@@ -286,9 +286,12 @@ def piecewise_transform(arr: np.ndarray) -> np.ndarray:
       - If 0.7 <= x <= 1: f(x) = (x - 0.7) + 0.75
     """
     result = arr.copy()
-    mask1 = (arr >= 0.57) & (arr <= 0.71)
+    result[38:49] = np.minimum((arr[38:49] - 0.2937)*0.75 +0.2937, 1.0)
+    result[49:60] = np.minimum((arr[49:60]-0.05), 1.0)
+    result[60:100] = np.minimum((arr[60:100] - 0.57)*2.0 +0.57, 1.0)
+    # mask1 = (arr >= 0.57) & (arr <= 0.71)
     mask2 = (arr > 0.71) & (arr <= 1.0)
-    result[mask1] = np.minimum((arr[mask1] - 0.57)*2.0 +0.57, 1.0)
+    # result[mask1] = np.minimum((arr[mask1] - 0.57)*2.0 +0.57, 1.0)
     result[mask2] = np.minimum((arr[mask2] - 0.71)*0.85 + 0.85, 1.0)
 
     return result
