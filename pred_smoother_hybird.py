@@ -4,7 +4,7 @@ from typing import Optional, Tuple
 class RegressionConfidenceSmoother:
     def __init__(
         self,
-        window_size: int = 10,
+        window_size: int = 15,
         beta: float = 5.0,
         eps: float = 1e-6,
         low_conf_th: float = 0.95,
