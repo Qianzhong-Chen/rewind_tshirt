@@ -676,7 +676,8 @@ class RewindRewardWorkspace:
         evaled_list = []
         # ep_to_run = [21, 101, 151, 263, 435, 402]
         # ep_to_run = [21, 101]
-        ep_to_run = [21]
+        # ep_to_run = [21, 320] # video select
+        ep_to_run = [320]
         
         for i in range(cfg.eval.video_run_times):
             ep_index = ep_to_run[i]
@@ -865,12 +866,17 @@ class RewindRewardWorkspace:
         data_dir = cfg.eval.raw_data_dir
         run_times = cfg.eval.raw_data_run_times
         # Get all valid episode paths
+        # ep_choices = [
+        #                 # "episode_20250814_005005_ad7edcc7.npy.mp4",
+        #                 # "episode_20250814_005959_6a5444bb.npy.mp4",
+        #                 # "episode_20250814_011842_ade669f9.npy.mp4",
+        #                 # "episode_20250814_015208_23313c8b.npy.mp4",
+        #                 "episode_20250814_020034_54fb6e97.npy.mp4",
+        #             ]
+        
         ep_choices = [
-                        # "episode_20250814_005005_ad7edcc7.npy.mp4",
-                        # "episode_20250814_005959_6a5444bb.npy.mp4",
-                        # "episode_20250814_011842_ade669f9.npy.mp4",
-                        # "episode_20250814_015208_23313c8b.npy.mp4",
-                        "episode_20250814_020034_54fb6e97.npy.mp4",
+                        "episode_20250814_015208_23313c8b.npy.mp4",
+                        # "episode_20250814_020034_54fb6e97.npy.mp4",
                     ]
         
         all_episodes = [

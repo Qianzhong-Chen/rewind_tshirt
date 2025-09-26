@@ -38,7 +38,7 @@ def draw_plot_frame(step: int, pred, gt, x_offset, width=448, height=448):
     ax.grid(True)
     fig.tight_layout()
 
-     # === Add Milestone Text ===
+    # === Add Milestone Text ===
     current_gt = gt[step]
     text_y = ax.get_ylim()[1] * 0.9  # position near top
 
@@ -270,8 +270,8 @@ def piecewise_transform(arr: np.ndarray) -> np.ndarray:
     mask3 = (arr >= 0.7) & (arr <= 1.0)
     
     result[mask1] = arr[mask1] * 0.833
-    result[mask2] = (arr[mask2] - 0.6) * 3.0 + 0.5
-    result[mask3] = np.minimum((arr[mask3] - 0.7) + 0.80, 1.0)
+    result[mask2] = (arr[mask2] - 0.6) * 4.0 + 0.5
+    result[mask3] = np.minimum((arr[mask3] - 0.7) + 0.90, 1.0)
     
     return result
 
@@ -298,24 +298,25 @@ def piecewise_transform(arr: np.ndarray) -> np.ndarray:
 
 
 # success rollout
-# def piecewise_transform_raw(arr: np.ndarray) -> np.ndarray:
-#     result = arr.copy()
-#     mask1 = (arr >= 0.76) & (arr <= 1.0)
-#     result[mask1] = np.minimum((arr[mask1] - 0.76)*1.5 + 0.76, 1.0)
-    
-#     return result
-
 def piecewise_transform_raw(arr: np.ndarray) -> np.ndarray:
     result = arr.copy()
-    mask1 = (arr >= 0.7) & (arr <= 1.0)
-    result[mask1] = np.minimum((arr[mask1] - 0.7)* 3.5 + 0.7, 1.0)
+    mask1 = (arr >= 0.48) & (arr <= 1.0)
+    result[mask1] = np.minimum((arr[mask1] - 0.48)*2.5 + 0.48, 1.0)
     
     return result
+
+# # fake finish
+# def piecewise_transform_raw(arr: np.ndarray) -> np.ndarray:
+#     result = arr.copy()
+#     mask1 = (arr >= 0.7) & (arr <= 1.0)
+#     result[mask1] = np.minimum((arr[mask1] - 0.7)* 3.5 + 0.7, 1.0)
+    
+#     return result
 
 
 def draw_plot_frame_raw_data_hybird(step: int, pred, x_offset, width=448, height=448, frame_gap=None, conf=None, smoothed=None):
     fig, ax = plt.subplots(figsize=(width / 100, height / 100), dpi=100)  # ensures final image is 448x448
-
+    pred = smoothed if smoothed is not None else pred
     if frame_gap is None:
         timesteps = np.arange(len(pred)) + x_offset
     else:
@@ -323,7 +324,6 @@ def draw_plot_frame_raw_data_hybird(step: int, pred, x_offset, width=448, height
         
     # === Plot raw prediction ===
     real_time  = timesteps * 0.033  # assuming 30 FPS, convert to seconds
-    pred = smoothed if smoothed is not None else pred
     line_pred, = ax.plot(real_time, pred, label='Predicted', linewidth=2)
     handles, labels = [line_pred], ["Predicted"]
 
@@ -335,12 +335,12 @@ def draw_plot_frame_raw_data_hybird(step: int, pred, x_offset, width=448, height
 
     # === Labels and style ===
     # ax.set_title("Reward Model Prediction")
-    ax.set_xlabel("Time (s)", fontsize=22)
-    ax.set_ylabel("Progress", fontsize=22)
+    ax.set_xlabel("Time (s)", fontsize=18)
+    ax.set_ylabel("Progress", fontsize=18)
     ax.grid(True)
 
     # === Legend ===
-    ax.legend(handles, labels, loc="best")
+    # ax.legend(handles, labels, loc="best")
 
     fig.tight_layout()
 
@@ -352,6 +352,142 @@ def draw_plot_frame_raw_data_hybird(step: int, pred, x_offset, width=448, height
     plt.close(fig)
 
     return img
+
+# # Ep 21
+# def draw_plot_frame_raw_data_hybird(step: int, pred, x_offset, width=448, height=448, frame_gap=None, conf=None, smoothed=None):
+#     fig, ax = plt.subplots(figsize=(width / 100, height / 100), dpi=100)  # ensures final image is 448x448
+#     pred = smoothed if smoothed is not None else pred
+#     if frame_gap is None:
+#         timesteps = np.arange(len(pred)) + x_offset
+#     else:
+#         timesteps = np.arange(0, len(pred) * frame_gap, frame_gap) + x_offset * frame_gap
+        
+#     # === Plot raw prediction ===
+#     real_time  = timesteps * 0.033  # assuming 30 FPS, convert to seconds
+#     line_pred, = ax.plot(real_time, pred, label='Predicted', linewidth=2)
+#     handles, labels = [line_pred], ["progress"]
+
+#     # === Vertical line at current step ===
+#     if frame_gap is None:
+#         ax.axvline(x=(step + x_offset)*0.033, color='r', linestyle='--', linewidth=2)
+#     else:
+#         ax.axvline(x=(step * frame_gap + x_offset * frame_gap)*0.033, color='r', linestyle='--', linewidth=2)
+
+#     # === Labels and style ===
+#     # ax.set_title("Reward Model Prediction")
+#     ax.set_xlabel("Time (s)", fontsize=18)
+#     ax.set_ylabel("Progress", fontsize=18)
+#     ax.grid(True)
+
+#     # === Legend ===
+#     # ax.legend(handles, labels, loc="best", fontsize=18)
+
+#     fig.tight_layout()
+
+#     # === Add Milestone Text ===
+#     text_y = ax.get_ylim()[1] * 0.9  # position near top
+
+#     # Sparse anno
+#     text_x_pos = 20
+#     annotation_list= ["Grab the tshirt from the pile", 
+#                       "Move the tshirt to the center of the board",
+#                       "Flatten the tshirt out",
+#                       "Fold the tshirt",
+#                       "Neatly place the folded tshirt to the corner",
+#                       "task finished"]
+#     if step <= 30:
+#         ax.text(text_x_pos, text_y, "Grab the tshirt from the pile", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     # elif 18 <= step < 30:
+#     #     ax.text(text_x_pos, text_y, "Move the tshirt to the center of the board", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     elif 30 <= step < 78:
+#         ax.text(text_x_pos, text_y, "Flatten the tshirt out", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     elif 78 <= step < 198:
+#         ax.text(text_x_pos, text_y, "Fold the tshirt", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     else:
+#         ax.text(text_x_pos, text_y, "Put folded tshirt into corner", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+
+    
+#     canvas = FigureCanvas(fig)
+#     canvas.draw()
+#     img = np.frombuffer(canvas.buffer_rgba(), dtype='uint8').copy()
+#     img = img.reshape(canvas.get_width_height()[::-1] + (4,))
+#     img = img[:, :, :3]  # get RGB
+#     plt.close(fig)
+
+#     return img
+
+# # Ep 320
+# def draw_plot_frame_raw_data_hybird(step: int, pred, x_offset, width=448, height=448, frame_gap=None, conf=None, smoothed=None):
+#     fig, ax = plt.subplots(figsize=(width / 100, height / 100), dpi=100)  # ensures final image is 448x448
+#     pred = smoothed if smoothed is not None else pred
+#     if frame_gap is None:
+#         timesteps = np.arange(len(pred)) + x_offset
+#     else:
+#         timesteps = np.arange(0, len(pred) * frame_gap, frame_gap) + x_offset * frame_gap
+        
+#     # === Plot raw prediction ===
+#     real_time  = timesteps * 0.033  # assuming 30 FPS, convert to seconds
+#     line_pred, = ax.plot(real_time, pred, label='Predicted', linewidth=2)
+#     handles, labels = [line_pred], ["progress"]
+
+#     # === Vertical line at current step ===
+#     if frame_gap is None:
+#         ax.axvline(x=(step + x_offset)*0.033, color='r', linestyle='--', linewidth=2)
+#     else:
+#         ax.axvline(x=(step * frame_gap + x_offset * frame_gap)*0.033, color='r', linestyle='--', linewidth=2)
+
+#     # === Labels and style ===
+#     # ax.set_title("Reward Model Prediction")
+#     ax.set_xlabel("Time (s)", fontsize=18)
+#     ax.set_ylabel("Progress", fontsize=18)
+#     ax.grid(True)
+
+#     # === Legend ===
+#     # ax.legend(handles, labels, loc="best", fontsize=18)
+
+#     fig.tight_layout()
+
+#     # === Add Milestone Text ===
+#     text_y = ax.get_ylim()[1] * 0.9  # position near top
+
+#     # Dense anno
+#     text_x_pos = 21
+#     annotation_list= [
+#             "grab crumpled tshirt and move to center",
+#             "flatten out the tshirt",
+#             "grab near side and fold one-third",
+#             "grab far side and fold into rectangle",
+#             "rotate the tshirt 90 degrees",
+#             "grab bottom and fold one-third",
+#             "grab two-third side and fold into square",
+#             "put folded tshirt into corner"
+#     ]
+    
+#     if step <= 24:
+#         ax.text(text_x_pos, text_y, "grab crumpled tshirt and move to center", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     elif 24 <= step < 66:
+#         ax.text(text_x_pos, text_y, "flatten out the tshirt", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     elif 66 <= step < 120:
+#         ax.text(text_x_pos, text_y, "grab near side and fold one-third", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     elif 120 <= step < 150:
+#         ax.text(text_x_pos, text_y, "grab far side and fold into rectangle", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     elif 150 <= step < 174:
+#         ax.text(text_x_pos, text_y, "rotate the tshirt 90 degrees", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     elif 174 <= step < 192:
+#         ax.text(text_x_pos, text_y, "grab bottom and fold one-third", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     elif 192 <= step < 228:
+#         ax.text(text_x_pos, text_y, "grab two-third side and fold into square", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+#     else:
+#         ax.text(text_x_pos, text_y, "put folded tshirt into corner", color='green', fontsize=12, fontweight='bold', ha='center', va='top')
+
+#     canvas = FigureCanvas(fig)
+#     canvas.draw()
+#     img = np.frombuffer(canvas.buffer_rgba(), dtype='uint8').copy()
+#     img = img.reshape(canvas.get_width_height()[::-1] + (4,))
+#     img = img[:, :, :3]  # get RGB
+#     plt.close(fig)
+
+#     return img
 
 def draw_overview_panel(frames: list[np.ndarray],
                         reward: np.ndarray,
@@ -604,6 +740,7 @@ def draw_overview_panel_dual(
 
 
 def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, episode_num, x_offset=30, frame_gap=None):
+    frame_gap = 5
     # === CONFIGURATION ===
     episode_dir = save_dir / f"episode_{episode_num}"
     left_video_path = left_video_dir / f"episode_{episode_num:06d}.mp4"
@@ -614,7 +751,7 @@ def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, e
     smooth_path = episode_dir / "smoothed.npy"
     gt_path = episode_dir / "gt.npy"
     output_path = episode_dir / "combined_video.mp4"
-    frame_rate = 32
+    frame_rate = 30
 
     target_h, target_w = 448, 448  # resolution per panel
 
@@ -629,7 +766,7 @@ def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, e
         conf = np.load(conf_path)[x_offset:]
     if os.path.exists(smooth_path):
         smoothed = np.load(smooth_path)[x_offset:]
-    T = len(pred)
+    T = len(pred)*4
 
     # Load videos
     clip_middle = VideoFileClip(str(middle_video_path))
@@ -651,6 +788,13 @@ def produce_video(save_dir, left_video_dir, middle_video_dir, right_video_dir, e
     # === CREATE COMBINED FRAMES ===
     combined_frames = []
     smoothed = piecewise_transform(smoothed)
+    orig_idx = np.arange(len(smoothed))
+    # Target indices (double size)
+    new_idx = np.linspace(0, len(smoothed) - 1, 4 * len(smoothed) - 1)
+    # Interpolated result
+    smoothed = np.interp(new_idx, orig_idx, smoothed)
+    
+    
     # overview = draw_overview_panel(frames_middle, smoothed, frame_rate, save_path=str(episode_dir / "overview_panel.pdf"))
     # overview = draw_overview_panel_dual(frames_middle, smoothed, frame_rate, reward_alt=gt, save_path=str(episode_dir / "overview_panel_dual.pdf"), 
     #                                     alt_curve_npy="/nfs_us/david_chen/reward_model_ckpt/tshirt_rollout/2025-09-18/11-52-04/fold_tshirt_regression_sparse/eval_video/2025.09.18-11.52.18/episode_21/smoothed.npy")
@@ -719,6 +863,7 @@ def produce_video_raw_data(save_dir, left_video_path, middle_video_path, right_v
     output_clip.write_videofile(str(output_path), codec='libx264')
     
 def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, right_video_path, episode_num, annotation_list=None, x_offset=30, frame_gap=None):
+    frame_gap = 5
     # === CONFIGURATION ===
     save_dir = Path(save_dir)
     pred_path = save_dir / "pred.npy"
@@ -740,7 +885,7 @@ def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, 
         smoothed = np.load(smooth_path)[x_offset:]
     else:
         smoothed = pred
-    T = len(pred)
+    T = len(pred) * 4
 
     # Load videos
     clip_middle = VideoFileClip(str(middle_video_path))
@@ -764,12 +909,15 @@ def produce_video_raw_data_hybird(save_dir, left_video_path, middle_video_path, 
 
     # === CREATE COMBINED FRAMES ===
     combined_frames = []
+    orig_idx = np.arange(len(smoothed))
+    new_idx = np.linspace(0, len(smoothed) - 1, 4 * len(smoothed) - 1)
+    smoothed = np.interp(new_idx, orig_idx, smoothed)
+    
     smoothed = piecewise_transform_raw(smoothed)
-    overview = draw_overview_panel(frames_middle, smoothed, frame_rate, save_path=str(save_dir / "overview_panel.pdf"))
-    # save alongside the episode video
-    summary_path = save_dir / "overview_panel.png"
-    # cv2 expects BGR
-    cv2.imwrite(str(summary_path), overview[:, :, ::-1])
+   
+    # overview = draw_overview_panel(frames_middle, smoothed, frame_rate, save_path=str(save_dir / "overview_panel.pdf"))
+    # summary_path = save_dir / "overview_panel.png"
+    # cv2.imwrite(str(summary_path), overview[:, :, ::-1])
     
     for t in range(T):
         middle_resized = cv2.resize(frames_middle[t], (target_w, target_h))
