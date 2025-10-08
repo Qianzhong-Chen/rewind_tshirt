@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torchvision.transforms as T
 from transformers import AutoImageProcessor, AutoModel, AutoTokenizer
+from transformers import AutoFeatureExtractor, AutoModel
+
 
 
 class FrozenVisionEncoder(nn.Module):
@@ -13,6 +15,7 @@ class FrozenVisionEncoder(nn.Module):
         super().__init__()
         self.device = device
         self.processor = AutoImageProcessor.from_pretrained(ckpt)
+        # self.processor = AutoFeatureExtractor.from_pretrained(ckpt)
         self.model = AutoModel.from_pretrained(ckpt).to(device).eval()
 
         for p in self.model.parameters():
